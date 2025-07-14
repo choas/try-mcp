@@ -1,0 +1,9 @@
+[project]
+name = "mvg-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mvg-api>=1.2.7",
+]
