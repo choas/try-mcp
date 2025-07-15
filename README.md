@@ -89,15 +89,18 @@ The MCP service provides two tools:
 
 #### Claude Desktop App Configuration
 
+Add this to your Claude Desktop configuration file (typically `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+**Using uv (recommended):**
 ```json
 {
   "mcpServers": {
     "mvg-mcp": {
-      "command": "/opt/homebrew/bin/uv",
+      "command": "uv",
       "args": [
         "run",
         "--directory",
-        "/Users/lars/prj/mvg_mcp_C",
+        "/path/to/your/mvg-mcp-project",
         "python",
         "mcp_server.py"
       ]
@@ -106,21 +109,23 @@ The MCP service provides two tools:
 }
 ```
 
-Alternative direct Python approach:
+**Alternative direct Python approach:**
 ```json
 {
   "mcpServers": {
     "mvg-mcp": {
       "command": "python",
-      "args": ["/Users/lars/prj/mvg_mcp_C/mcp_server.py"],
-      "cwd": "/Users/lars/prj/mvg_mcp_C",
+      "args": ["/path/to/your/mvg-mcp-project/mcp_server.py"],
+      "cwd": "/path/to/your/mvg-mcp-project",
       "env": {
-        "PATH": "/Users/lars/prj/mvg_mcp_C/.venv/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+        "PATH": "/path/to/your/mvg-mcp-project/.venv/bin:/usr/local/bin:/usr/bin:/bin"
       }
     }
   }
 }
 ```
+
+Replace `/path/to/your/mvg-mcp-project` with the actual path to your project directory.
 
 
 
@@ -134,32 +139,12 @@ python test_mcp.py
 
 This will verify that all MCP functionality is working correctly with real Munich transport data.
 
-## Success! 🎉
+## Usage with Claude Desktop
 
-Your MVG MCP service is now fully functional and can be used with Claude Desktop to get real-time Munich public transport information. The service provides:
-
-- **Real-time departures** from any Munich station
-- **Station lookup** by name
-- **Clean, formatted output** with emojis and departure details
-- **Error handling** for invalid stations or API issues
-
-Simply ask Claude things like:
+Once configured, you can ask Claude things like:
 - "Check departures from Hauptbahnhof"
 - "What trains are leaving from Marienplatz?"
 - "Show me departures from Sendlinger Tor in 10 minutes"
+- "Find the station ID for Odeonsplatz"
 
-
-## Running in a Sandbox (Docker file)
-
-Connect to the container with:
-
-```shell
-podman exec -u 0 -it <container_name> /bin/bash
-```
-
-Install all necessary packages:
-
-```shell
-apt update
-apt -y install python3 python3-pip python3-venv build-essential
-```
+The service will provide real-time departure information with clean, formatted output including emojis and departure details.
