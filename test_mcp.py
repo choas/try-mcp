@@ -2,13 +2,13 @@
 
 import asyncio
 import json
-from mcp_server import SimpleMCPServer
+from mcp_server import MVGMCPServer
 
-async def test_simple_mcp():
-    """Test the simple MCP server."""
-    print("Testing Simple MCP Server...")
+async def test_mvg_mcp():
+    """Test the MVG MCP server."""
+    print("Testing MVG MCP Server...")
     
-    server = SimpleMCPServer()
+    server = MVGMCPServer()
     
     # Test initialize
     print("\n1. Testing initialize...")
@@ -95,4 +95,4 @@ async def test_simple_mcp():
             print(f"   Error: {response['error']['message']}")
 
 if __name__ == "__main__":
-    asyncio.run(test_simple_mcp())
+    asyncio.run(test_mvg_mcp())

@@ -12,7 +12,7 @@ from mcp_service import get_departures, get_station_id
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class SimpleMCPServer:
+class MVGMCPServer:
     def __init__(self):
         self.tools = [
             {
@@ -263,7 +263,7 @@ class SimpleMCPServer:
 
 async def main():
     """Main entry point."""
-    server = SimpleMCPServer()
+    server = MVGMCPServer()
     await server.run()
 
 if __name__ == "__main__":
