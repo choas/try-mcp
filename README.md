@@ -1,6 +1,6 @@
 # MVG MCP
 
-This project provides a simple command-line interface to find public transport connections in Munich, Germany using the MVG API.
+This project provides both a command-line interface and an MCP (Model Context Protocol) service to find public transport departures in Munich, Germany using the MVG API.
 
 ## Prerequisites
 
@@ -49,13 +49,44 @@ There are two ways to set up the environment: using `venv` or `uv`.
 
 ## Running the Application
 
-Once the setup is complete, you can run the application with the following command:
+### Command Line Interface
+
+You can run the CLI application with:
 
 ```bash
-python main.py
+python main.py <station_name> [--offset <minutes>]
 ```
 
-This will fetch and display the next departures from "Hauptbahnhof" to "Marienplatz".
+Examples:
+```bash
+# Get departures from Hauptbahnhof now
+python main.py Hauptbahnhof
+
+# Get departures from Marienplatz in 10 minutes
+python main.py Marienplatz --offset 10
+```
+
+### MCP Service
+
+To run as an MCP service:
+
+```bash
+python mcp_server.py
+```
+
+The MCP service provides two tools:
+- `get_departures`: Get public transport departures from a station
+- `find_station`: Find a station ID by name
+
+### FastAPI Web Service
+
+To run the web API:
+
+```bash
+uvicorn api:app --reload
+```
+
+Then visit `http://localhost:8000/docs` for the API documentation.
 
 
 ## Running in a Sandbox (Docker file)

@@ -1,9 +1,13 @@
 [project]
 name = "mvg-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "Munich public transport MCP service for getting departures and station information"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "mvg>=1.3.1",
+    "mcp>=1.0.0",
 ]
+
+[project.scripts]
+mvg-mcp = "mcp_server:main"
