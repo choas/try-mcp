@@ -2,6 +2,15 @@
 
 This project provides both a command-line interface and an MCP (Model Context Protocol) service to find public transport departures in Munich, Germany using the MVG API.
 
+## Features
+
+- **Command-line interface** - Get departures directly from the terminal
+- **MCP service** - Integrate with AI assistants like Claude Desktop
+- **Real-time data** - Live departure information from Munich's public transport system
+- **Station lookup** - Find stations by name
+- **Time offset support** - Check departures at future times
+- **Error handling** - Graceful handling of invalid stations or API issues
+
 ## Prerequisites
 
 - Python 3.11+
@@ -113,15 +122,7 @@ Alternative direct Python approach:
 }
 ```
 
-### FastAPI Web Service
 
-To run the web API:
-
-```bash
-uvicorn api:app --reload
-```
-
-Then visit `http://localhost:8000/docs` for the API documentation.
 
 ## Testing
 
