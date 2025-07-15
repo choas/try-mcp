@@ -23,6 +23,45 @@ async def get_station(station_name: str) -> dict:
         logger.error(f"MVG API error while fetching station ID for '{station_name}': {e}")
         raise
 
+async def build_transport_graph(start_station_id: str, max_depth: int = 3) -> dict:
+    """Build a graph of the transport network."""
+    graph = {}
+    queue = [(start_station_id, 0)]
+    visited = {start_station_id}
+
+    while queue:
+        current_station_id, depth = queue.pop(0)
+
+        if depth >= max_depth:
+            continue
+
+        if current_station_id not in graph:
+            graph[current_station_id] = []
+
+        try:
+            departures = await MvgApi.departures_async(current_station_id)
+            for departure in departures:
+                # This is where we need to get all stops for the line
+                # and add them to the graph.
+                # For now, we'll just print the departure object to inspect it.
+                print(departure)
+
+        except (ValueError, MvgApiError):
+            continue
+            
+    return graph
+
+def bfs_paths(graph, start, goal):
+    """Find all paths from start to goal using BFS."""
+    queue = [(start, [start])]
+    while queue:
+        (vertex, path) = queue.pop(0)
+        for next_node in set(graph.get(vertex, [])) - set(path):
+            if next_node == goal:
+                yield path + [next_node]
+            else:
+                queue.append((next_node, path + [next_node]))
+
 async def find_routes(start_station_name: str, dest_station_name: str, time: Optional[datetime] = None, is_arrival_time: bool = False):
     """Find routes between two stations."""
     if not time:
@@ -31,45 +70,33 @@ async def find_routes(start_station_name: str, dest_station_name: str, time: Opt
     try:
         start_station = await get_station(start_station_name)
         dest_station = await get_station(dest_station_name)
-        
-        print(start_station)
-        exit()
 
         start_id = start_station['id']
         dest_id = dest_station['id']
 
-        logger.info(f"Finding routes from {start_station_name} ({start_id}) to {dest_station_name} ({dest_id})")
+        logger.info(f"Building transport graph from {start_station_name}...")
+        graph = await build_transport_graph(start_id)
         
-        departures = await MvgApi.departures_async(start_id)
-        all_lines = await MvgApi.lines_async()
+        logger.info("Searching for a route...")
+        paths = list(bfs_paths(graph, start_id, dest_id))
 
-        direct_connections = []
-        for departure in departures:
-            # The line information is in departure['line']
-            for line_info in all_lines:
-                if line_info['name'] == departure['line']:
-                    # This is still not a robust way to get the stops for a line.
-                    # The free 'lines_async' does not provide the stops.
-                    # A paid API key might be needed for that.
-                    # For now, we will assume that if the line name matches, it's a direct connection.
-                    # This is a limitation of the current approach.
-                    if dest_station_name.lower() in departure['destination'].lower():
-                        direct_connections.append(departure)
-                        break
-
-
-        if not direct_connections:
-            logger.info("No direct connections found.")
+        if not paths:
+            logger.info("No route found.")
             return
 
-        logger.info("Found direct connections:")
-        for i, route in enumerate(direct_connections, 1):
-            logger.info(f"--- Route {i} ---")
-            logger.info(f"Departure time: {route['time']}")
-            logger.info(f"Line: {route['line']}")
-            logger.info(f"Destination: {route['destination']}")
-            logger.info(f"Type: {route['type']}")
-            logger.info("-" * 15)
+        logger.info("Found a route:")
+        # For now, just print the first path found
+        path = paths[0]
+        
+        # We need to get the station names from the IDs
+        route_stations = []
+        for station_id in path:
+            # This is not efficient, we should cache the station names
+            # But for now, this will work
+            station = await MvgApi.station_async(station_id)
+            route_stations.append(station['name'])
+
+        logger.info(" -> ".join(route_stations))
 
 
     except (ValueError, MvgApiError) as e:

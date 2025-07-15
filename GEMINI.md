@@ -21,7 +21,12 @@ In a next step:
 - It takes a start and end destination as command-line arguments.
 - It also accepts optional `--time` and `--arrival` flags.
 - The service currently only attempts to find direct connections.
-- **Limitation:** The `mvg` library does not provide an easy way to get the stops for a given line without a paid API key. This makes it difficult to accurately determine if a route is a direct connection. The current implementation has a temporary workaround, but it is not reliable.
+- **Conclusion:** The `mvg` library, in its free version, is not suitable for building a routing service with connections. The API does not provide the necessary data to build a graph of the transport network, which is a prerequisite for any routing algorithm.
+- **Recommendation:** To implement the MCP service as described, one of the following is required:
+    - A paid API key for the `mvg` library that provides access to route and stop information.
+    - A different library or API that provides the necessary data.
+    - A different approach that does not rely on real-time data from the `mvg` library, such as using a pre-built graph of the Munich transport network.
+
 
 ## mvg library is the way to go
 
