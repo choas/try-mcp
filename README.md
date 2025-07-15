@@ -78,6 +78,42 @@ The MCP service provides two tools:
 - `get_departures`: Get public transport departures from a station
 - `find_station`: Find a station ID by name
 
+#### Claude Desktop App Configuration
+
+Try this configuration first (using simple server):
+```json
+{
+  "mcpServers": {
+    "mvg-mcp": {
+      "command": "/opt/homebrew/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/Users/lars/prj/mvg_mcp_C",
+        "python",
+        "mcp_server_simple.py"
+      ]
+    }
+  }
+}
+```
+
+Alternative direct Python approach:
+```json
+{
+  "mcpServers": {
+    "mvg-mcp": {
+      "command": "python",
+      "args": ["/Users/lars/prj/mvg_mcp_C/mcp_server_alt.py"],
+      "cwd": "/Users/lars/prj/mvg_mcp_C",
+      "env": {
+        "PATH": "/Users/lars/prj/mvg_mcp_C/.venv/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+      }
+    }
+  }
+}
+```
+
 ### FastAPI Web Service
 
 To run the web API:

@@ -25,49 +25,50 @@ logger = logging.getLogger(__name__)
 # Create MCP server instance
 server = Server("mvg-mcp")
 
-@server.list_tools()
-async def list_tools() -> ListToolsResult:
-    """List available tools for the MCP server."""
-    return ListToolsResult(
-        tools=[
-            Tool(
-                name="get_departures",
-                description="Get public transport departures from a station in Munich, Germany",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "station_name": {
-                            "type": "string",
-                            "description": "Name of the station (e.g., 'Hauptbahnhof', 'Marienplatz')"
-                        },
-                        "offset": {
-                            "type": "integer",
-                            "description": "Time offset in minutes from now (default: 0)",
-                            "default": 0
-                        }
-                    },
-                    "required": ["station_name"]
+# Define tools
+TOOLS = [
+    Tool(
+        name="get_departures",
+        description="Get public transport departures from a station in Munich, Germany",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "station_name": {
+                    "type": "string",
+                    "description": "Name of the station (e.g., 'Hauptbahnhof', 'Marienplatz')"
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Time offset in minutes from now (default: 0)",
+                    "default": 0
                 }
-            ),
-            Tool(
-                name="find_station",
-                description="Find a station ID by name in Munich's public transport system",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "station_name": {
-                            "type": "string",
-                            "description": "Name of the station to search for"
-                        }
-                    },
-                    "required": ["station_name"]
+            },
+            "required": ["station_name"]
+        }
+    ),
+    Tool(
+        name="find_station",
+        description="Find a station ID by name in Munich's public transport system",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "station_name": {
+                    "type": "string",
+                    "description": "Name of the station to search for"
                 }
-            )
-        ]
+            },
+            "required": ["station_name"]
+        }
     )
+]
+
+@server.list_tools()
+async def handle_list_tools() -> ListToolsResult:
+    """List available tools for the MCP server."""
+    return ListToolsResult(tools=TOOLS)
 
 @server.call_tool()
-async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
+async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
     """Handle tool calls from the MCP client."""
     try:
         if name == "get_departures":
