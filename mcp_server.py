@@ -3,18 +3,8 @@
 import asyncio
 import json
 import logging
+import sys
 from typing import Any, Dict, List, Optional
-
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import (
-    CallToolRequest,
-    CallToolResult,
-    ListToolsRequest,
-    ListToolsResult,
-    Tool,
-    TextContent,
-)
 
 from mcp_service import get_departures, get_station_id
 
@@ -22,142 +12,259 @@ from mcp_service import get_departures, get_station_id
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create MCP server instance
-server = Server("mvg-mcp")
-
-# Define tools
-TOOLS = [
-    Tool(
-        name="get_departures",
-        description="Get public transport departures from a station in Munich, Germany",
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "station_name": {
-                    "type": "string",
-                    "description": "Name of the station (e.g., 'Hauptbahnhof', 'Marienplatz')"
-                },
-                "offset": {
-                    "type": "integer",
-                    "description": "Time offset in minutes from now (default: 0)",
-                    "default": 0
+class SimpleMCPServer:
+    def __init__(self):
+        self.tools = [
+            {
+                "name": "get_departures",
+                "description": "Get public transport departures from a station in Munich, Germany",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "station_name": {
+                            "type": "string",
+                            "description": "Name of the station (e.g., 'Hauptbahnhof', 'Marienplatz')"
+                        },
+                        "offset": {
+                            "type": "integer",
+                            "description": "Time offset in minutes from now (default: 0)",
+                            "default": 0
+                        }
+                    },
+                    "required": ["station_name"]
                 }
             },
-            "required": ["station_name"]
-        }
-    ),
-    Tool(
-        name="find_station",
-        description="Find a station ID by name in Munich's public transport system",
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "station_name": {
-                    "type": "string",
-                    "description": "Name of the station to search for"
+            {
+                "name": "find_station",
+                "description": "Find a station ID by name in Munich's public transport system",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "station_name": {
+                            "type": "string",
+                            "description": "Name of the station to search for"
+                        }
+                    },
+                    "required": ["station_name"]
                 }
-            },
-            "required": ["station_name"]
-        }
-    )
-]
+            }
+        ]
 
-@server.list_tools()
-async def handle_list_tools() -> ListToolsResult:
-    """List available tools for the MCP server."""
-    return ListToolsResult(tools=TOOLS)
+    async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle incoming MCP requests."""
+        method = request.get("method")
+        request_id = request.get("id")
+        params = request.get("params", {})
 
-@server.call_tool()
-async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
-    """Handle tool calls from the MCP client."""
-    try:
-        if name == "get_departures":
-            station_name = arguments.get("station_name")
-            offset = arguments.get("offset", 0)
+        try:
+            if method == "initialize":
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {
+                            "tools": {"listChanged": False},
+                            "experimental": {}
+                        },
+                        "serverInfo": {
+                            "name": "mvg-mcp",
+                            "version": "1.0.0"
+                        }
+                    }
+                }
             
-            if not station_name:
-                return CallToolResult(
-                    content=[TextContent(type="text", text="Error: station_name is required")]
-                )
+            elif method == "notifications/initialized":
+                # No response needed for notifications
+                return None
             
-            logger.info(f"Getting departures for {station_name} with offset {offset}")
-            departures = await get_departures(station_name, offset)
+            elif method == "tools/list":
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "tools": self.tools
+                    }
+                }
             
-            if departures is None:
-                return CallToolResult(
-                    content=[TextContent(
-                        type="text", 
-                        text=f"Error: Could not find station '{station_name}' or API error occurred"
-                    )]
-                )
+            elif method == "tools/call":
+                tool_name = params.get("name")
+                arguments = params.get("arguments", {})
+                
+                result = await self.call_tool(tool_name, arguments)
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": result
+                }
             
-            if not departures:
-                return CallToolResult(
-                    content=[TextContent(
-                        type="text", 
-                        text=f"No departures found for station '{station_name}'"
-                    )]
-                )
-            
-            # Format the response
-            result_text = f"Departures from {station_name}:\n\n"
-            for departure in departures:
-                result_text += f"🚇 {departure['time']} | {departure['line']} → {departure['destination']}"
-                if departure.get('cancelled'):
-                    result_text += " (CANCELLED)"
-                result_text += "\n"
-            
-            return CallToolResult(
-                content=[TextContent(type="text", text=result_text)]
-            )
-        
-        elif name == "find_station":
-            station_name = arguments.get("station_name")
-            
-            if not station_name:
-                return CallToolResult(
-                    content=[TextContent(type="text", text="Error: station_name is required")]
-                )
-            
-            logger.info(f"Finding station ID for {station_name}")
-            station_id = await get_station_id(station_name)
-            
-            if station_id:
-                return CallToolResult(
-                    content=[TextContent(
-                        type="text", 
-                        text=f"Station '{station_name}' found with ID: {station_id}"
-                    )]
-                )
             else:
-                return CallToolResult(
-                    content=[TextContent(
-                        type="text", 
-                        text=f"Station '{station_name}' not found"
-                    )]
-                )
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {
+                        "code": -32601,
+                        "message": "Method not found"
+                    }
+                }
         
-        else:
-            return CallToolResult(
-                content=[TextContent(type="text", text=f"Unknown tool: {name}")]
-            )
-    
-    except Exception as e:
-        logger.error(f"Error in tool call {name}: {e}")
-        return CallToolResult(
-            content=[TextContent(type="text", text=f"Error: {str(e)}")]
-        )
+        except Exception as e:
+            logger.error(f"Error handling request {method}: {e}")
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "error": {
+                    "code": 0,
+                    "message": str(e)
+                }
+            }
+
+    async def call_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle tool calls."""
+        try:
+            if name == "get_departures":
+                station_name = arguments.get("station_name")
+                offset = arguments.get("offset", 0)
+                
+                if not station_name:
+                    return {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Error: station_name is required"
+                            }
+                        ]
+                    }
+                
+                logger.info(f"Getting departures for {station_name} with offset {offset}")
+                departures = await get_departures(station_name, offset)
+                
+                if departures is None:
+                    return {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"Error: Could not find station '{station_name}' or API error occurred"
+                            }
+                        ]
+                    }
+                
+                if not departures:
+                    return {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"No departures found for station '{station_name}'"
+                            }
+                        ]
+                    }
+                
+                # Format the response
+                result_text = f"Departures from {station_name}:\n\n"
+                for departure in departures:
+                    result_text += f"🚇 {departure['time']} | {departure['line']} → {departure['destination']}"
+                    if departure.get('cancelled'):
+                        result_text += " (CANCELLED)"
+                    result_text += "\n"
+                
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": result_text
+                        }
+                    ]
+                }
+            
+            elif name == "find_station":
+                station_name = arguments.get("station_name")
+                
+                if not station_name:
+                    return {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Error: station_name is required"
+                            }
+                        ]
+                    }
+                
+                logger.info(f"Finding station ID for {station_name}")
+                station_id = await get_station_id(station_name)
+                
+                if station_id:
+                    text = f"Station '{station_name}' found with ID: {station_id}"
+                else:
+                    text = f"Station '{station_name}' not found"
+                
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": text
+                        }
+                    ]
+                }
+            
+            else:
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Unknown tool: {name}"
+                        }
+                    ]
+                }
+        
+        except Exception as e:
+            logger.error(f"Error in tool call {name}: {e}")
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Error: {str(e)}"
+                    }
+                ]
+            }
+
+    async def run(self):
+        """Run the MCP server using stdio."""
+        logger.info("Starting Simple MVG MCP Server...")
+        
+        while True:
+            try:
+                # Read from stdin
+                line = await asyncio.get_event_loop().run_in_executor(None, sys.stdin.readline)
+                if not line:
+                    break
+                
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # Parse JSON request
+                try:
+                    request = json.loads(line)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON: {e}")
+                    continue
+                
+                # Handle request
+                response = await self.handle_request(request)
+                
+                # Send response (if any)
+                if response is not None:
+                    response_json = json.dumps(response)
+                    print(response_json, flush=True)
+            
+            except Exception as e:
+                logger.error(f"Error in main loop: {e}")
+                break
 
 async def main():
-    """Run the MCP server."""
-    logger.info("Starting MVG MCP Server...")
-    
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            server.create_initialization_options()
-        )
+    """Main entry point."""
+    server = SimpleMCPServer()
+    await server.run()
 
 if __name__ == "__main__":
     asyncio.run(main())

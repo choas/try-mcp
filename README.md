@@ -80,7 +80,6 @@ The MCP service provides two tools:
 
 #### Claude Desktop App Configuration
 
-Try this configuration first (using simple server):
 ```json
 {
   "mcpServers": {
@@ -91,7 +90,7 @@ Try this configuration first (using simple server):
         "--directory",
         "/Users/lars/prj/mvg_mcp_C",
         "python",
-        "mcp_server_simple.py"
+        "mcp_server.py"
       ]
     }
   }
@@ -104,7 +103,7 @@ Alternative direct Python approach:
   "mcpServers": {
     "mvg-mcp": {
       "command": "python",
-      "args": ["/Users/lars/prj/mvg_mcp_C/mcp_server_alt.py"],
+      "args": ["/Users/lars/prj/mvg_mcp_C/mcp_server.py"],
       "cwd": "/Users/lars/prj/mvg_mcp_C",
       "env": {
         "PATH": "/Users/lars/prj/mvg_mcp_C/.venv/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
@@ -123,6 +122,30 @@ uvicorn api:app --reload
 ```
 
 Then visit `http://localhost:8000/docs` for the API documentation.
+
+## Testing
+
+To test the MCP server locally:
+
+```bash
+python test_mcp.py
+```
+
+This will verify that all MCP functionality is working correctly with real Munich transport data.
+
+## Success! 🎉
+
+Your MVG MCP service is now fully functional and can be used with Claude Desktop to get real-time Munich public transport information. The service provides:
+
+- **Real-time departures** from any Munich station
+- **Station lookup** by name
+- **Clean, formatted output** with emojis and departure details
+- **Error handling** for invalid stations or API issues
+
+Simply ask Claude things like:
+- "Check departures from Hauptbahnhof"
+- "What trains are leaving from Marienplatz?"
+- "Show me departures from Sendlinger Tor in 10 minutes"
 
 
 ## Running in a Sandbox (Docker file)
