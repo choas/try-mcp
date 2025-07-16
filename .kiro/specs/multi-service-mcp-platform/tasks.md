@@ -48,11 +48,12 @@
   - Write unit tests for timestamp generation, range validation, and error handling
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 8. Implement digital fortune cookie service
-  - Create fortune phrase generator with surreal and cryptic content templates
-  - Implement hourly caching mechanism to ensure same phrase per hour
-  - Create fortune cookie service class with get_fortune_cookie tool
-  - Write unit tests for phrase generation, caching, and hourly rotation
+- [-] 8. Implement digital fortune cookie service
+  - Implement MCP prompts/list method to provide surreal and cryptic fortune cookie prompts
+  - Create LLM integration to generate fortune phrases using the provided prompts
+  - Implement hourly caching mechanism to ensure same LLM-generated phrase per hour
+  - Create fortune cookie service class with get_fortune_cookie tool and prompts/list support
+  - Write unit tests for prompt generation, LLM integration, caching, and hourly rotation
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
 - [ ] 9. Implement error handling and response formatting
