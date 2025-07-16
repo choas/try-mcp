@@ -1,15 +1,27 @@
-# MVG MCP
+# Multi-Service MCP Platform
 
-This project provides both a command-line interface and an MCP (Model Context Protocol) service to find public transport departures in Munich, Germany using the MVG API.
+This project provides a flexible, plugin-based MCP (Model Context Protocol) platform that hosts multiple services including:
+
+- **MVG Service**: Munich public transport departures and station information
+- **Mindful Service**: Daily inspirational mindful sentences
+- **Emoji Oracle Service**: Cryptic guidance through symbolic emoji combinations
+- **Fortune Cookie Service**: Surreal and cryptic fortune phrases that change hourly
 
 ## Features
 
-- **Command-line interface** - Get departures directly from the terminal
-- **MCP service** - Integrate with AI assistants like Claude Desktop
-- **Real-time data** - Live departure information from Munich's public transport system
-- **Station lookup** - Find stations by name
-- **Time offset support** - Check departures at future times
-- **Error handling** - Graceful handling of invalid stations or API issues
+### Platform Features
+- **Plugin-based Architecture**: Easily add new services without modifying core code
+- **Service Registry**: Dynamic service discovery and management
+- **Generic MCP Implementation**: Supports all MCP methods across services
+- **Service-specific Endpoints**: Individual MCP endpoints for each service
+- **Prompts Support**: Full MCP prompts/list implementation
+- **Error Handling**: Graceful handling of invalid requests or service issues
+
+### Service Features
+- **MVG Service**: Real-time departure information from Munich's public transport system
+- **Mindful Service**: Daily rotation of inspirational sentences (4 per day)
+- **Emoji Oracle Service**: Symbolic guidance through emoji combinations
+- **Fortune Cookie Service**: Hourly-changing surreal fortune phrases with prompts support
 
 ## Prerequisites
 
@@ -55,162 +67,199 @@ There are two ways to set up the environment: using `venv` or `uv`.
     uv pip install -r requirements.txt
     ```
 
+## Running the Multi-Service Platform
 
-## Running the Application
-
-### Command Line Interface
-
-You can run the CLI application with:
+Start the multi-service platform with:
 
 ```bash
-python main.py <station_name> [--offset <minutes>]
+python multi_service_server.py
 ```
 
-Examples:
-```bash
-# Get departures from Hauptbahnhof now
-python main.py Hauptbahnhof
+This starts an HTTP server on `http://localhost:8003` with:
+- `/mcp` - Main MCP protocol endpoint
+- `/services/{service_name}/v{version}` - Service-specific MCP endpoints
+- `/services/{service_name}/v{version}/{method}` - Direct service method calls
+- `/services` - List all available services
+- `/services/{service_name}` - Get information about a specific service
+- `/health` - Health check endpoint
+- `/` - Service information
 
-# Get departures from Marienplatz in 10 minutes
-python main.py Marienplatz --offset 10
-```
+## Running Individual Services
 
-### MCP Service
+You can also run individual services directly:
 
-The project provides two MCP server options:
-
-#### Option 1: Stdio MCP Server (for local use with Claude Desktop)
-
-```bash
-python mcp_server.py
-```
-
-#### Option 2: Streamable MCP Server (for remote hosting with modern transport)
+### MVG Service
 
 ```bash
-python mcp_streamable_server.py
+python mcp_server.py  # Stdio MCP Server
+python mcp_streamable_server.py  # Streamable MCP Server (http://localhost:8002)
 ```
 
-This starts a StreamableHttp server on `http://localhost:8002` with:
-- `/mcp` - MCP protocol endpoint (GET for streaming, POST for requests)
-- `/health` - Health check endpoint (GET)
-- `/` - Service information (GET)
+## Service Architecture
 
-**Features:**
-- ✅ **StreamableHttp transport** - Modern MCP protocol
-- ✅ **Bidirectional communication** - Real-time streaming
-- ✅ **CORS support** - Web client compatibility
-- ✅ **JSON streaming** - Efficient data transfer
+The platform uses a plugin-based architecture with the following components:
 
-Both MCP services provide the same two tools:
-- `get_departures`: Get public transport departures from a station
-- `find_station`: Find a station ID by name
+- **ServiceRegistry**: Manages service discovery and instantiation
+- **ServiceRouter**: Routes requests to appropriate services
+- **BaseService**: Abstract base class for all services
+- **Service Implementations**: Individual service classes (MVG, Mindful, Emoji Oracle, Fortune)
 
-#### Claude Desktop App Configuration
+Services can be added dynamically without modifying the core platform code:
+
+```python
+# Register a new service
+registry = ServiceRegistry()
+registry.register_service_class(MyCustomService)
+server = MultiServiceMCPServer(service_registry=registry)
+```
+
+## MCP Protocol Support
+
+The platform supports the following MCP methods:
+
+- **initialize**: Initialize the MCP connection
+- **tools/list**: List available tools across all services
+- **tools/call**: Call a specific tool
+- **prompts/list**: List available prompts (from services that support prompts)
+
+Each service-specific endpoint also supports these methods for that particular service.
+
+## Claude Desktop Configuration
 
 Add this to your Claude Desktop configuration file (typically `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
-**Using uv (recommended):**
 ```json
 {
   "mcpServers": {
-    "mvg-mcp": {
+    "multi-service-mcp": {
       "command": "uv",
       "args": [
         "run",
         "--directory",
-        "/path/to/your/mvg-mcp-project",
+        "/path/to/your/multi-service-mcp-project",
         "python",
-        "mcp_server.py"
+        "multi_service_server.py"
       ]
     }
   }
 }
 ```
 
-**Alternative direct Python approach:**
-```json
-{
-  "mcpServers": {
-    "mvg-mcp": {
-      "command": "python",
-      "args": ["/path/to/your/mvg-mcp-project/mcp_server.py"],
-      "cwd": "/path/to/your/mvg-mcp-project",
-      "env": {
-        "PATH": "/path/to/your/mvg-mcp-project/.venv/bin:/usr/local/bin:/usr/bin:/bin"
-      }
-    }
-  }
-}
-```
-
-Replace `/path/to/your/mvg-mcp-project` with the actual path to your project directory.
-
-**For Streamable MCP Server (via mcp-remote):**
-
-```json
-{
-  "mcpServers": {
-    "mvg-mcp-http": {
-      "command": "npx",
-      "args": ["mcp-remote", "http://localhost:8002/mcp"]
-    }
-  }
-}
-```
-
-This uses the `mcp-remote` npm package to bridge between Claude Desktop's stdio protocol and your HTTP streamable server.
-
-> **Prerequisites for mcp-remote**: Ensure you have Node.js installed. The `npx` command will automatically download and run the `mcp-remote` package.
-
-**Alternative: Direct Python execution (for local development):**
-
-```json
-{
-  "mcpServers": {
-    "mvg-mcp-streamable": {
-      "command": "python",
-      "args": ["/path/to/your/mvg-mcp-project/mcp_streamable_server.py"],
-      "cwd": "/path/to/your/mvg-mcp-project",
-      "env": {
-        "PATH": "/path/to/your/mvg-mcp-project/.venv/bin:/usr/local/bin:/usr/bin:/bin"
-      }
-    }
-  }
-}
-```
-
-Replace `/path/to/your/mvg-mcp-project` with the actual path to your project directory.
+Replace `/path/to/your/multi-service-mcp-project` with the actual path to your project directory.
 
 ## Testing
 
-**Test the stdio MCP server locally:**
+### Testing the Multi-Service Platform
+
 ```bash
-python test_mcp.py
+# Run all tests
+python -m pytest
+
+# Test specific services
+python -m pytest test_fortune_service.py
+python -m pytest test_mvg_service.py
+python -m pytest test_mindful_service.py
+python -m pytest test_emoji_oracle_service.py
+
+# Test service registry
+python -m pytest test_service_registry.py
+
+# Test MCP prompts integration
+python -m pytest test_mcp_prompts_integration.py
 ```
 
-**Test the streamable MCP server:**
+### Testing Individual Endpoints
+
 ```bash
-# First, start the streamable server in one terminal:
-python mcp_streamable_server.py
+# Test the main MCP endpoint
+curl -X POST http://localhost:8003/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 
-# For debug logging (shows request/response data):
-DEBUG=true python mcp_streamable_server.py
+# Test service-specific endpoints
+curl -X POST http://localhost:8003/services/fortune/v1 -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"prompts/list","params":{}}'
 
-# Then test the endpoints:
-curl http://localhost:8002/health
-curl http://localhost:8002/
-curl -X POST http://localhost:8002/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+# Test direct method calls
+curl -X POST http://localhost:8003/services/mvg/v1/get_departures -H "Content-Type: application/json" -d '{"station":"Hauptbahnhof"}'
 ```
-
-Both tests will verify that MCP functionality is working correctly with real Munich transport data.
 
 ## Usage with Claude Desktop
 
-Once configured, you can ask Claude things like:
+Once configured, you can ask Claude to use various services:
+
+### MVG Service
 - "Check departures from Hauptbahnhof"
 - "What trains are leaving from Marienplatz?"
 - "Show me departures from Sendlinger Tor in 10 minutes"
-- "Find the station ID for Odeonsplatz"
 
-The service will provide real-time departure information with clean, formatted output including emojis and departure details.
+### Mindful Service
+- "Show me a mindful sentence for today"
+- "I need some inspiration"
+
+### Emoji Oracle Service
+- "What does the emoji oracle say about my day?"
+- "Give me an emoji reading"
+
+### Fortune Cookie Service
+- "What's my fortune today?"
+- "Give me a fortune cookie"
+- "Show me a cryptic fortune"
+
+## Docker Support
+
+The project includes a Dockerfile for containerization:
+
+```bash
+# Build the Docker image
+docker build -t multi-service-mcp .
+
+# Run the container
+docker run -p 8003:8003 multi-service-mcp
+```
+
+## Extending with New Services
+
+To add a new service:
+
+1. Create a new service class that inherits from `BaseService`
+2. Implement the required methods (`handle_request`, `get_tools`)
+3. Optionally implement prompts support (`supports_prompts`, `get_prompts`)
+4. Place the service in the `services/` directory
+5. The service will be auto-discovered by the platform
+
+Example:
+
+```python
+from services.base_service import BaseService
+from data.models import ToolResult
+
+class MyCustomService(BaseService):
+    def __init__(self):
+        super().__init__(
+            name="custom",
+            version="v1",
+            description="My custom service"
+        )
+        self._tool_definitions = [
+            {
+                "name": "my_tool",
+                "description": "My custom tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        ]
+    
+    async def handle_request(self, method, params):
+        if method == "my_tool":
+            return self._create_text_response("Custom response")
+        else:
+            return self._create_error_response(f"Unknown method: {method}")
+    
+    def get_tools(self):
+        return self._tool_definitions.copy()
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
