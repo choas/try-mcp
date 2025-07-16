@@ -17,6 +17,7 @@ from service_router import ServiceRouter
 from services.mvg_service import MVGService
 from services.mindful_service import MindfulService
 from services.emoji_oracle_service import EmojiOracleService
+from services.fortune_service import FortuneService
 
 # Set up structured logging
 import os
@@ -56,10 +57,12 @@ class MultiServiceMCPServer:
         self.mvg_service = MVGService()
         self.mindful_service = MindfulService()
         self.emoji_oracle_service = EmojiOracleService()
+        self.fortune_service = FortuneService()
         
         self.router.register_service(self.mvg_service)
         self.router.register_service(self.mindful_service)
         self.router.register_service(self.emoji_oracle_service)
+        self.router.register_service(self.fortune_service)
         
         logger.info(f"Registered {self.router.get_service_count()} services")
         for service_info in self.router.list_services():
