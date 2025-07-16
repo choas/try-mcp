@@ -207,3 +207,26 @@ class FortuneService(BaseService):
             fortune: Fortune phrase to cache
         """
         self._fortune_cache[hour_key] = fortune
+    
+    def supports_prompts(self) -> bool:
+        """Check if this service supports MCP prompts.
+        
+        Returns:
+            True since fortune service provides prompts
+        """
+        return True
+    
+    def get_prompts(self) -> List[Dict[str, Any]]:
+        """Get MCP prompts provided by this service.
+        
+        Returns:
+            List of prompt definitions in MCP format
+        """
+        prompts = []
+        for i, prompt in enumerate(self._prompts):
+            prompts.append({
+                "name": f"fortune_prompt_{i+1}",
+                "description": f"Fortune generation prompt: {prompt[:50]}{'...' if len(prompt) > 50 else ''}",
+                "arguments": []
+            })
+        return prompts

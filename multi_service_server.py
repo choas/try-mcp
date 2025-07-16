@@ -14,10 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from service_router import ServiceRouter
-from services.mvg_service import MVGService
-from services.mindful_service import MindfulService
-from services.emoji_oracle_service import EmojiOracleService
-from services.fortune_service import FortuneService
+from service_registry import ServiceRegistry
 
 # Set up structured logging
 import os
@@ -49,24 +46,49 @@ app.add_middleware(
 )
 
 class MultiServiceMCPServer:
-    def __init__(self):
-        """Initialize the multi-service MCP server."""
+    def __init__(self, service_registry: Optional[ServiceRegistry] = None):
+        """Initialize the multi-service MCP server.
+        
+        Args:
+            service_registry: Optional service registry. If None, will auto-discover services.
+        """
         self.router = ServiceRouter()
+        self.service_registry = service_registry or ServiceRegistry()
         
-        # Register services
-        self.mvg_service = MVGService()
-        self.mindful_service = MindfulService()
-        self.emoji_oracle_service = EmojiOracleService()
-        self.fortune_service = FortuneService()
-        
-        self.router.register_service(self.mvg_service)
-        self.router.register_service(self.mindful_service)
-        self.router.register_service(self.emoji_oracle_service)
-        self.router.register_service(self.fortune_service)
+        # Load services
+        self._load_services()
         
         logger.info(f"Registered {self.router.get_service_count()} services")
         for service_info in self.router.list_services():
             logger.info(f"  - {service_info.name} v{service_info.version}: {service_info.description}")
+    
+    def _load_services(self):
+        """Load services using the service registry."""
+        # First, get any existing service instances
+        existing_services = self.service_registry.get_all_service_instances()
+        
+        if existing_services:
+            # Use existing services if available
+            services = existing_services
+            logger.info(f"Using {len(services)} pre-registered services")
+        else:
+            # Try to auto-discover services
+            services = self.service_registry.auto_discover_services()
+            logger.info(f"Auto-discovered {len(services)} services")
+        
+        # Register all services with the router
+        for service in services:
+            self.router.register_service(service)
+            logger.info(f"Loaded service: {service.name} v{service.version}")
+    
+    def add_service(self, service):
+        """Add a service to the server.
+        
+        Args:
+            service: Service instance to add
+        """
+        self.router.register_service(service)
+        logger.info(f"Added service: {service.name} v{service.version}")
 
     async def handle_mcp_request(self, request: Dict[str, Any], request_uuid: str = None) -> Dict[str, Any]:
         """Handle incoming MCP requests."""
@@ -128,21 +150,16 @@ class MultiServiceMCPServer:
                 # Get all prompts from all services that support them
                 all_prompts = []
                 
-                # Check each service for prompt support
+                # Check each service for prompt support using the generic interface
                 for service_info in self.router.list_services():
                     service = self.router.get_service(service_info.name, service_info.version)
                     
-                    # Check if service has prompts (specifically fortune service for now)
-                    if service_info.name == "fortune":
-                        # Get prompts from fortune service
-                        prompts = []
-                        for i, prompt in enumerate(service._prompts):
-                            prompts.append({
-                                "name": f"fortune_prompt_{i+1}",
-                                "description": f"Fortune generation prompt: {prompt[:50]}{'...' if len(prompt) > 50 else ''}",
-                                "arguments": []
-                            })
-                        all_prompts.extend(prompts)
+                    # Use the generic supports_prompts() method
+                    if service and service.supports_prompts():
+                        # Get prompts using the generic get_prompts() method
+                        service_prompts = service.get_prompts()
+                        all_prompts.extend(service_prompts)
+                        logger.debug(f"Added {len(service_prompts)} prompts from {service_info.name}")
                 
                 return {
                     "jsonrpc": "2.0",

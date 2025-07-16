@@ -110,3 +110,19 @@ class BaseService(ABC):
             ToolResult with error content
         """
         return self._create_text_response(f"Error: {error_message}", is_error=True)
+    
+    def supports_prompts(self) -> bool:
+        """Check if this service supports MCP prompts.
+        
+        Returns:
+            True if service supports prompts, False otherwise
+        """
+        return False
+    
+    def get_prompts(self) -> List[Dict[str, Any]]:
+        """Get MCP prompts provided by this service.
+        
+        Returns:
+            List of prompt definitions in MCP format
+        """
+        return []
