@@ -96,6 +96,26 @@ This starts an HTTP server on `http://localhost:8000` with:
 - `/health` - Health check endpoint (GET)
 - `/` - Service information (GET)
 
+#### Option 3: SSE MCP Server (streamable HTTP with Server-Sent Events)
+
+```bash
+python mcp_sse_server.py
+```
+
+This starts an SSE-enabled server on `http://localhost:8001` with:
+- `/mcp` - Standard MCP protocol endpoint (POST)
+- `/mcp/stream` - SSE streaming endpoint (GET)
+- `/mcp/stream/{connection_id}` - Send to specific stream (POST)
+- `/health` - Health check with connection count (GET)
+- `/` - Service information with capabilities (GET)
+
+**Features:**
+- ✅ **Streamable transport** - Future-ready for MCP evolution
+- ✅ **Server-Sent Events** - Real-time bidirectional communication
+- ✅ **CORS support** - Web client compatibility
+- ✅ **Connection management** - Multiple concurrent connections
+- ✅ **Keepalive** - Automatic connection maintenance
+
 Both MCP services provide the same two tools:
 - `get_departures`: Get public transport departures from a station
 - `find_station`: Find a station ID by name
@@ -140,24 +160,25 @@ Add this to your Claude Desktop configuration file (typically `~/Library/Applica
 
 Replace `/path/to/your/mvg-mcp-project` with the actual path to your project directory.
 
-**For HTTP MCP Server:**
+**For Remote HTTP MCP Server (via Bridge):**
+
+If you want to connect to a remote HTTP MCP server, use the bridge:
+
 ```json
 {
   "mcpServers": {
-    "mvg-mcp-http": {
-      "command": "curl",
-      "args": [
-        "-X", "POST",
-        "http://your-server:8000/mcp",
-        "-H", "Content-Type: application/json",
-        "-d", "@-"
-      ]
+    "mvg-mcp-remote": {
+      "command": "python",
+      "args": ["/path/to/your/mvg-mcp-project/mcp_bridge.py", "--url", "http://your-server:8000"],
+      "cwd": "/path/to/your/mvg-mcp-project"
     }
   }
 }
 ```
 
 Replace `your-server` with your actual server hostname or IP address.
+
+> **Note**: Claude Desktop currently focuses on stdio-based MCP servers. HTTP support is limited, with future plans for Streamable HTTP and SSE protocols. The HTTP server is useful for other integrations and Claude Code has better remote MCP support.
 
 ## Testing
 
@@ -175,7 +196,19 @@ python mcp_http_server.py
 python test_http_mcp.py
 ```
 
-Both tests will verify that all MCP functionality is working correctly with real Munich transport data.
+**Test the SSE MCP server:**
+```bash
+# First, start the SSE server in one terminal:
+python mcp_sse_server.py
+
+# Then in another terminal, run the test:
+python test_sse_mcp.py
+
+# For interactive SSE testing (keeps connection open):
+python test_sse_mcp.py --interactive
+```
+
+All tests will verify that MCP functionality is working correctly with real Munich transport data.
 
 ## Usage with Claude Desktop
 
