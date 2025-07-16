@@ -77,13 +77,26 @@ python main.py Marienplatz --offset 10
 
 ### MCP Service
 
-To run as an MCP service:
+The project provides two MCP server options:
+
+#### Option 1: Stdio MCP Server (for local use with Claude Desktop)
 
 ```bash
 python mcp_server.py
 ```
 
-The MCP service provides two tools:
+#### Option 2: HTTP MCP Server (for remote hosting)
+
+```bash
+python mcp_http_server.py
+```
+
+This starts an HTTP server on `http://localhost:8000` with:
+- `/mcp` - MCP protocol endpoint (POST)
+- `/health` - Health check endpoint (GET)
+- `/` - Service information (GET)
+
+Both MCP services provide the same two tools:
 - `get_departures`: Get public transport departures from a station
 - `find_station`: Find a station ID by name
 
@@ -127,17 +140,42 @@ Add this to your Claude Desktop configuration file (typically `~/Library/Applica
 
 Replace `/path/to/your/mvg-mcp-project` with the actual path to your project directory.
 
+**For HTTP MCP Server:**
+```json
+{
+  "mcpServers": {
+    "mvg-mcp-http": {
+      "command": "curl",
+      "args": [
+        "-X", "POST",
+        "http://your-server:8000/mcp",
+        "-H", "Content-Type: application/json",
+        "-d", "@-"
+      ]
+    }
+  }
+}
+```
 
+Replace `your-server` with your actual server hostname or IP address.
 
 ## Testing
 
-To test the MCP server locally:
-
+**Test the stdio MCP server locally:**
 ```bash
 python test_mcp.py
 ```
 
-This will verify that all MCP functionality is working correctly with real Munich transport data.
+**Test the HTTP MCP server:**
+```bash
+# First, start the HTTP server in one terminal:
+python mcp_http_server.py
+
+# Then in another terminal, run the test:
+python test_http_mcp.py
+```
+
+Both tests will verify that all MCP functionality is working correctly with real Munich transport data.
 
 ## Usage with Claude Desktop
 
