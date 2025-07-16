@@ -184,6 +184,85 @@ class MultiServiceMCPServer:
                 }
             }
 
+async def handle_individual_service_mcp(service, request: Dict[str, Any], request_uuid: str = None) -> Dict[str, Any]:
+    """Handle MCP requests for a specific individual service."""
+    method = request.get("method")
+    request_id = request.get("id")
+    params = request.get("params", {})
+    req_uuid = request_uuid or str(uuid.uuid4())
+    
+    logger.info(f"INDIVIDUAL_MCP - Service: {service.name} | Method: {method} | ID: {req_uuid}")
+
+    try:
+        if method == "initialize":
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "protocolVersion": "2025-06-18",
+                    "capabilities": {
+                        "tools": {"listChanged": False},
+                        "experimental": {}
+                    },
+                    "serverInfo": {
+                        "name": f"{service.name}-mcp-service",
+                        "version": service.version,
+                        "description": service.description
+                    }
+                }
+            }
+        
+        elif method == "notifications/initialized":
+            return None
+        
+        elif method == "tools/list":
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "tools": service.get_tools()
+                }
+            }
+        
+        elif method == "tools/call":
+            tool_name = params.get("name")
+            arguments = params.get("arguments", {})
+            
+            logger.info(f"TOOL_CALL - Service: {service.name} | Tool: {tool_name}")
+            
+            # Call the service directly
+            result = await service.handle_request(tool_name, arguments)
+            
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "content": result.content,
+                    "is_error": result.is_error
+                }
+            }
+        
+        else:
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "error": {
+                    "code": -32601,
+                    "message": "Method not found"
+                }
+            }
+    
+    except Exception as e:
+        logger.error(f"Error in individual service MCP for {service.name}: {e}", exc_info=True)
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "error": {
+                "code": 0,
+                "message": str(e)
+            }
+        }
+
 # Create server instance
 mcp_server = MultiServiceMCPServer()
 
@@ -268,6 +347,60 @@ async def get_service_info(service_name: str):
         "available_versions": versions
     }
 
+@app.post("/services/{service_name}/v{version}")
+async def handle_service_mcp(service_name: str, version: str, request: Request):
+    """Handle MCP requests for individual services."""
+    request_uuid = str(uuid.uuid4())
+    
+    try:
+        body = await request.json()
+        logger.debug(f"MCP {service_name}/v{version} - Request: {json.dumps(body, indent=2)}")
+        
+        # Get the specific service
+        service = mcp_server.router.get_service(service_name, f"v{version}")
+        if not service:
+            error_response = {
+                "jsonrpc": "2.0",
+                "id": body.get("id"),
+                "error": {
+                    "code": -32601,
+                    "message": f"Service '{service_name}' version 'v{version}' not found"
+                }
+            }
+            return JSONResponse(content=error_response, status_code=404)
+        
+        # Handle MCP protocol for this specific service
+        response = await handle_individual_service_mcp(service, body, request_uuid)
+        
+        if response is None:
+            return None
+        
+        logger.debug(f"MCP {service_name}/v{version} - Response: {json.dumps(response, indent=2)}")
+        return JSONResponse(content=response)
+    
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parse error for {service_name}/v{version}: {e}")
+        error_response = {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32700,
+                "message": "Parse error"
+            }
+        }
+        return JSONResponse(content=error_response, status_code=400)
+    
+    except Exception as e:
+        logger.error(f"Unexpected error in {service_name}/v{version}: {e}", exc_info=True)
+        error_response = {
+            "jsonrpc": "2.0",
+            "id": body.get("id") if 'body' in locals() else None,
+            "error": {
+                "code": -32603,
+                "message": "Internal error"
+            }
+        }
+        return JSONResponse(content=error_response, status_code=500)
+
 @app.post("/services/{service_name}/v{version}/{method}")
 async def call_service_method(service_name: str, version: str, method: str, request: Request):
     """Direct service method call via REST API."""
@@ -311,9 +444,9 @@ async def root():
             for service in services
         ],
         "endpoints": {
-            "mcp": "/mcp (POST) - MCP protocol endpoint",
             "services": "/services - List all services",
             "service_info": "/services/{service_name} - Get service information",
+            "individual_mcp": "/services/{service_name}/v{version} - Individual MCP endpoint per service",
             "direct_call": "/services/{service_name}/v{version}/{method} - Direct service method call"
         },
         "capabilities": {
