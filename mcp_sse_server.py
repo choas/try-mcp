@@ -79,7 +79,7 @@ class MVGMCPSSEServer:
                     "jsonrpc": "2.0",
                     "id": request_id,
                     "result": {
-                        "protocolVersion": "2024-11-05",
+                        "protocolVersion": "2025-06-18",
                         "capabilities": {
                             "tools": {"listChanged": False},
                             "experimental": {},
@@ -248,30 +248,7 @@ class MVGMCPSSEServer:
                 ]
             }
 
-    async def create_sse_stream(self, connection_id: str) -> AsyncGenerator[str, None]:
-        """Create SSE stream for a connection."""
-        queue = asyncio.Queue()
-        self.active_connections[connection_id] = queue
-        
-        try:
-            # Send initial connection event
-            yield f"data: {json.dumps({'type': 'connected', 'connection_id': connection_id})}\n\n"
-            
-            while True:
-                try:
-                    # Wait for messages with timeout
-                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
-                    yield f"data: {json.dumps(message)}\n\n"
-                except asyncio.TimeoutError:
-                    # Send keepalive
-                    yield f"data: {json.dumps({'type': 'keepalive'})}\n\n"
-                except Exception as e:
-                    logger.error(f"Error in SSE stream: {e}")
-                    break
-        finally:
-            # Clean up connection
-            if connection_id in self.active_connections:
-                del self.active_connections[connection_id]
+
 
     async def send_to_connection(self, connection_id: str, message: Dict[str, Any]):
         """Send message to a specific connection."""
@@ -283,6 +260,75 @@ class MVGMCPSSEServer:
 
 # Create server instance
 mcp_server = MVGMCPSSEServer()
+
+@app.get("/mcp")
+async def mcp_sse_stream(request: Request):
+    """Handle SSE streaming for MCP (StreamableHttp transport)."""
+    # Check if client expects SSE
+    accept_header = request.headers.get("accept", "")
+    if "text/event-stream" in accept_header:
+        connection_id = str(uuid.uuid4())
+        logger.info(f"New MCP SSE connection: {connection_id}")
+        
+        async def generate():
+            queue = asyncio.Queue()
+            mcp_server.active_connections[connection_id] = queue
+            
+            try:
+                # Send initial connection event
+                initial_data = f"data: {json.dumps({'type': 'connected', 'connection_id': connection_id})}\n\n"
+                yield initial_data
+                
+                while True:
+                    try:
+                        # Wait for messages with timeout
+                        message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                        sse_data = f"data: {json.dumps(message)}\n\n"
+                        yield sse_data
+                    except asyncio.TimeoutError:
+                        # Send keepalive
+                        keepalive_data = f"data: {json.dumps({'type': 'keepalive'})}\n\n"
+                        yield keepalive_data
+                    except Exception as e:
+                        logger.error(f"Error in MCP SSE stream: {e}")
+                        break
+            except asyncio.CancelledError:
+                logger.info(f"MCP SSE connection {connection_id} cancelled")
+            except Exception as e:
+                logger.error(f"Unexpected error in MCP SSE stream {connection_id}: {e}")
+            finally:
+                # Clean up connection
+                if connection_id in mcp_server.active_connections:
+                    del mcp_server.active_connections[connection_id]
+                    logger.info(f"Cleaned up MCP SSE connection {connection_id}")
+        
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Cache-Control",
+                "X-Accel-Buffering": "no"
+            }
+        )
+    else:
+        # Regular GET request - return info
+        return {
+            "service": "MVG MCP Protocol Endpoint",
+            "methods": {
+                "POST": "Send MCP JSON-RPC requests",
+                "GET": "SSE streaming (with Accept: text/event-stream) or this info page"
+            },
+            "transport": "StreamableHttp",
+            "example_request": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/list",
+                "params": {}
+            }
+        }
 
 @app.post("/mcp")
 async def handle_mcp(request: Request):
@@ -315,14 +361,47 @@ async def mcp_stream(request: Request):
     connection_id = str(uuid.uuid4())
     logger.info(f"New SSE connection: {connection_id}")
     
+    async def generate():
+        queue = asyncio.Queue()
+        mcp_server.active_connections[connection_id] = queue
+        
+        try:
+            # Send initial connection event
+            initial_data = f"data: {json.dumps({'type': 'connected', 'connection_id': connection_id})}\n\n"
+            yield initial_data
+            
+            while True:
+                try:
+                    # Wait for messages with timeout
+                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    sse_data = f"data: {json.dumps(message)}\n\n"
+                    yield sse_data
+                except asyncio.TimeoutError:
+                    # Send keepalive
+                    keepalive_data = f"data: {json.dumps({'type': 'keepalive'})}\n\n"
+                    yield keepalive_data
+                except Exception as e:
+                    logger.error(f"Error in SSE stream: {e}")
+                    break
+        except asyncio.CancelledError:
+            logger.info(f"SSE connection {connection_id} cancelled")
+        except Exception as e:
+            logger.error(f"Unexpected error in SSE stream {connection_id}: {e}")
+        finally:
+            # Clean up connection
+            if connection_id in mcp_server.active_connections:
+                del mcp_server.active_connections[connection_id]
+                logger.info(f"Cleaned up SSE connection {connection_id}")
+    
     return StreamingResponse(
-        mcp_server.create_sse_stream(connection_id),
+        generate(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Cache-Control"
+            "Access-Control-Allow-Headers": "Cache-Control",
+            "X-Accel-Buffering": "no"
         }
     )
 

@@ -67,7 +67,7 @@ class MVGMCPHTTPServer:
                     "jsonrpc": "2.0",
                     "id": request_id,
                     "result": {
-                        "protocolVersion": "2024-11-05",
+                        "protocolVersion": "2025-06-18",
                         "capabilities": {
                             "tools": {"listChanged": False},
                             "experimental": {}
