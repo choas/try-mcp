@@ -16,8 +16,11 @@ import uvicorn
 from mcp_service import get_departures, get_station_id
 
 # Set up structured logging
+import os
+log_level = logging.DEBUG if os.getenv('DEBUG', '').lower() in ('true', '1', 'yes') else logging.INFO
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
@@ -26,13 +29,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Log the current logging level
+logger.info(f"Logging level set to: {logging.getLevelName(log_level)}")
+if log_level == logging.DEBUG:
+    logger.debug("DEBUG logging enabled - request/response data will be logged")
+
 class StructuredLogger:
     """Structured logger with context and performance tracking."""
     
     def __init__(self, base_logger):
         self.logger = base_logger
     
-    def log_request(self, request_id: str, method: str, endpoint: str, **context):
+    def log_request(self, request_id: str, method: str, endpoint: str, request_data: Dict = None, **context):
         """Log incoming request with context."""
         self.logger.info(
             f"REQUEST_START - ID: {request_id} | Method: {method} | Endpoint: {endpoint}",
@@ -44,8 +52,19 @@ class StructuredLogger:
                 **context
             }
         )
+        
+        # Log request data at DEBUG level
+        if request_data is not None:
+            self.logger.debug(
+                f"REQUEST_DATA - ID: {request_id} | Data: {json.dumps(request_data, indent=2)}",
+                extra={
+                    "request_id": request_id,
+                    "request_data": request_data,
+                    "timestamp": time.time()
+                }
+            )
     
-    def log_response(self, request_id: str, status_code: int, duration_ms: float, **context):
+    def log_response(self, request_id: str, status_code: int, duration_ms: float, response_data: Dict = None, **context):
         """Log response with performance metrics."""
         self.logger.info(
             f"REQUEST_END - ID: {request_id} | Status: {status_code} | Duration: {duration_ms:.2f}ms",
@@ -57,6 +76,17 @@ class StructuredLogger:
                 **context
             }
         )
+        
+        # Log response data at DEBUG level
+        if response_data is not None:
+            self.logger.debug(
+                f"RESPONSE_DATA - ID: {request_id} | Data: {json.dumps(response_data, indent=2)}",
+                extra={
+                    "request_id": request_id,
+                    "response_data": response_data,
+                    "timestamp": time.time()
+                }
+            )
     
     def log_tool_call(self, request_id: str, tool_name: str, arguments: Dict, **context):
         """Log tool call with context."""
@@ -174,11 +204,12 @@ class MVGMCPStreamableServer:
         
         start_time = time.time()
         
-        # Log incoming request
+        # Log incoming request with data
         structured_logger.log_request(
             req_uuid, 
             method, 
             "mcp_request",
+            request_data=request,
             mcp_method=method,
             mcp_id=request_id,
             params_size=len(json.dumps(params)) if params else 0
@@ -211,6 +242,7 @@ class MVGMCPStreamableServer:
                     req_uuid, 
                     200, 
                     duration_ms,
+                    response_data=result,
                     response_size=len(json.dumps(result))
                 )
                 return result
@@ -236,6 +268,7 @@ class MVGMCPStreamableServer:
                     req_uuid, 
                     200, 
                     duration_ms,
+                    response_data=result,
                     response_size=len(json.dumps(result)),
                     tools_count=len(self.tools)
                 )
@@ -261,6 +294,7 @@ class MVGMCPStreamableServer:
                     req_uuid, 
                     200, 
                     duration_ms,
+                    response_data=response,
                     response_size=len(json.dumps(response)),
                     tool_name=tool_name
                 )
@@ -532,17 +566,19 @@ async def handle_mcp_post(request: Request):
     request_uuid = str(uuid.uuid4())
     start_time = time.time()
     
-    # Log incoming HTTP request
-    structured_logger.log_request(
-        request_uuid,
-        "POST",
-        "/mcp",
-        client_ip=request.client.host if request.client else "unknown",
-        user_agent=request.headers.get("user-agent", "unknown")
-    )
-    
     try:
         body = await request.json()
+        
+        # Log incoming HTTP request with data
+        structured_logger.log_request(
+            request_uuid,
+            "POST",
+            "/mcp",
+            request_data=body,
+            client_ip=request.client.host if request.client else "unknown",
+            user_agent=request.headers.get("user-agent", "unknown")
+        )
+        
         response = await mcp_server.handle_mcp_request(body, request_uuid)
         
         if response is None:
@@ -557,6 +593,7 @@ async def handle_mcp_post(request: Request):
             request_uuid, 
             200, 
             duration_ms,
+            response_data=response,
             response_size=len(json.dumps(response))
         )
         return JSONResponse(content=response)
