@@ -17,7 +17,7 @@ class MVGService(BaseService):
         """Initialize the MVG service."""
         super().__init__(
             name="mvg",
-            version="1.0.0",
+            version="v1",
             description="Munich public transport service providing departure times and station information"
         )
         
