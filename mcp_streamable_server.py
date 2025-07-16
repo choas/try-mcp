@@ -585,7 +585,7 @@ async def handle_mcp_post(request: Request):
             # Log notification response
             duration_ms = (time.time() - start_time) * 1000
             structured_logger.log_response(request_uuid, 204, duration_ms, response_type="notification")
-            return JSONResponse(content={}, status_code=204)
+            return None 
         
         # Log successful response
         duration_ms = (time.time() - start_time) * 1000
