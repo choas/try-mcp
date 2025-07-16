@@ -88,6 +88,7 @@ class MultiServiceMCPServer:
                         "protocolVersion": "2025-06-18",
                         "capabilities": {
                             "tools": {"listChanged": False},
+                            "prompts": {"listChanged": False},
                             "experimental": {},
                             "transport": {
                                 "streamable": True
@@ -120,6 +121,34 @@ class MultiServiceMCPServer:
                     "id": request_id,
                     "result": {
                         "tools": all_tools
+                    }
+                }
+            
+            elif method == "prompts/list":
+                # Get all prompts from all services that support them
+                all_prompts = []
+                
+                # Check each service for prompt support
+                for service_info in self.router.list_services():
+                    service = self.router.get_service(service_info.name, service_info.version)
+                    
+                    # Check if service has prompts (specifically fortune service for now)
+                    if service_info.name == "fortune":
+                        # Get prompts from fortune service
+                        prompts = []
+                        for i, prompt in enumerate(service._prompts):
+                            prompts.append({
+                                "name": f"fortune_prompt_{i+1}",
+                                "description": f"Fortune generation prompt: {prompt[:50]}{'...' if len(prompt) > 50 else ''}",
+                                "arguments": []
+                            })
+                        all_prompts.extend(prompts)
+                
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "prompts": all_prompts
                     }
                 }
             

@@ -55,8 +55,6 @@ class FortuneService(BaseService):
         try:
             if method == "get_fortune_cookie":
                 return await self._handle_get_fortune_cookie(params)
-            elif method == "prompts/list":
-                return await self._handle_prompts_list(params)
             else:
                 return self._create_error_response(f"Unknown method: {method}")
         
@@ -70,18 +68,7 @@ class FortuneService(BaseService):
         Returns:
             List of tool definitions in MCP format
         """
-        # Add prompts/list to the tool definitions for MCP compliance
-        tools = self._tool_definitions.copy()
-        tools.append({
-            "name": "prompts/list",
-            "description": "List available fortune cookie generation prompts",
-            "inputSchema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        })
-        return tools
+        return self._tool_definitions.copy()
     
     async def _handle_get_fortune_cookie(self, params: Dict[str, Any]) -> ToolResult:
         """Handle get_fortune_cookie requests.
@@ -109,40 +96,7 @@ class FortuneService(BaseService):
         
         return self._create_text_response(result_text)
     
-    async def _handle_prompts_list(self, params: Dict[str, Any]) -> ToolResult:
-        """Handle prompts/list requests for MCP compliance.
-        
-        Args:
-            params: Request parameters
-            
-        Returns:
-            ToolResult with available prompts
-        """
-        prompts_info = {
-            "prompts": [
-                {
-                    "name": f"fortune_prompt_{i+1}",
-                    "description": f"Fortune generation prompt: {prompt[:50]}...",
-                    "arguments": []
-                }
-                for i, prompt in enumerate(self._prompts)
-            ],
-            "instructions": self._generation_instructions,
-            "total_prompts": len(self._prompts)
-        }
-        
-        result_text = f"📜 Fortune Cookie Prompts 📜\n\n"
-        result_text += f"Available prompts: {len(self._prompts)}\n\n"
-        result_text += "Sample prompts:\n"
-        for i, prompt in enumerate(self._prompts[:5]):  # Show first 5 as examples
-            result_text += f"{i+1}. {prompt}\n"
-        
-        if len(self._prompts) > 5:
-            result_text += f"... and {len(self._prompts) - 5} more prompts available\n"
-        
-        result_text += f"\n🎭 Generation Instructions 🎭\n{self._generation_instructions}"
-        
-        return self._create_text_response(result_text)
+
     
     def _get_current_hour_key(self) -> str:
         """Get a unique key for the current hour.

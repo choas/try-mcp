@@ -28,23 +28,17 @@ class TestFortuneService:
         """Test that the service returns correct tool definitions."""
         tools = self.service.get_tools()
         
-        # Should have both get_fortune_cookie and prompts/list
-        assert len(tools) == 2
+        # Should have only get_fortune_cookie (prompts/list is handled at server level)
+        assert len(tools) == 1
         
         tool_names = [tool["name"] for tool in tools]
         assert "get_fortune_cookie" in tool_names
-        assert "prompts/list" in tool_names
         
         # Check get_fortune_cookie tool structure
         fortune_tool = next(tool for tool in tools if tool["name"] == "get_fortune_cookie")
         assert "surreal and cryptic" in fortune_tool["description"]
         assert fortune_tool["inputSchema"]["type"] == "object"
         assert fortune_tool["inputSchema"]["required"] == []
-        
-        # Check prompts/list tool structure
-        prompts_tool = next(tool for tool in tools if tool["name"] == "prompts/list")
-        assert "prompts" in prompts_tool["description"]
-        assert prompts_tool["inputSchema"]["type"] == "object"
     
     @pytest.mark.asyncio
     async def test_handle_get_fortune_cookie(self):
@@ -72,21 +66,13 @@ class TestFortuneService:
         assert len(fortune_line) > 2  # More than just quotes
     
     @pytest.mark.asyncio
-    async def test_handle_prompts_list(self):
-        """Test handling prompts/list requests."""
+    async def test_handle_prompts_list_not_supported(self):
+        """Test that prompts/list is no longer handled by the service (handled at server level)."""
         result = await self.service.handle_request("prompts/list", {})
         
         assert isinstance(result, ToolResult)
-        assert not result.is_error
-        assert len(result.content) == 1
-        assert result.content[0]["type"] == "text"
-        
-        text = result.content[0]["text"]
-        assert "📜 Fortune Cookie Prompts 📜" in text
-        assert "Available prompts:" in text
-        assert "Sample prompts:" in text
-        assert "🎭 Generation Instructions 🎭" in text
-        assert "surreal and cryptic" in text
+        assert result.is_error
+        assert "Unknown method: prompts/list" in result.content[0]["text"]
     
     @pytest.mark.asyncio
     async def test_handle_unknown_method(self):
@@ -228,7 +214,7 @@ class TestFortuneService:
         assert service_info.version == "v1"
         assert "Digital fortune cookie service" in service_info.description
         assert service_info.status == "active"
-        assert len(service_info.tools) == 2
+        assert len(service_info.tools) == 1
     
     def test_fortune_phrase_quality(self):
         """Test that generated fortune phrases meet quality criteria."""
@@ -288,12 +274,7 @@ class TestFortuneServiceIntegration:
     @pytest.mark.asyncio
     async def test_full_workflow(self):
         """Test the complete fortune cookie workflow."""
-        # Get prompts list
-        prompts_result = await self.service.handle_request("prompts/list", {})
-        assert not prompts_result.is_error
-        assert "Fortune Cookie Prompts" in prompts_result.content[0]["text"]
-        
-        # Get fortune cookie
+        # Get fortune cookie (prompts/list is now handled at server level)
         fortune_result = await self.service.handle_request("get_fortune_cookie", {})
         assert not fortune_result.is_error
         assert "Digital Fortune Cookie" in fortune_result.content[0]["text"]

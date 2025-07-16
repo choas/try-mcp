@@ -33,7 +33,7 @@ class TestFortuneServiceIntegration:
         assert fortune_info.version == "v1"
         assert "Digital fortune cookie service" in fortune_info.description
         assert fortune_info.status == "active"
-        assert len(fortune_info.tools) == 2
+        assert len(fortune_info.tools) == 1
     
     @pytest.mark.asyncio
     async def test_route_get_fortune_cookie(self):
@@ -58,8 +58,8 @@ class TestFortuneServiceIntegration:
         assert "Digital Fortune Cookie" in result["content"][0]["text"]
     
     @pytest.mark.asyncio
-    async def test_route_prompts_list(self):
-        """Test routing prompts/list requests."""
+    async def test_route_prompts_list_not_supported(self):
+        """Test that prompts/list is no longer supported at service level (handled at server level)."""
         response = await self.router.route_request(
             url="/fortune/v1",
             method="prompts/list",
@@ -68,13 +68,12 @@ class TestFortuneServiceIntegration:
         )
         
         assert isinstance(response, ServiceResponse)
-        assert response.success
+        assert response.success  # Router succeeds, but service returns error
         assert response.data["service"] == "fortune"
         
         result = response.data["result"]
-        assert not result["is_error"]
-        assert "Fortune Cookie Prompts" in result["content"][0]["text"]
-        assert "Generation Instructions" in result["content"][0]["text"]
+        assert result["is_error"]
+        assert "Unknown method: prompts/list" in result["content"][0]["text"]
     
     @pytest.mark.asyncio
     async def test_route_invalid_method(self):
@@ -383,17 +382,16 @@ class TestFortuneServiceMCPCompliance:
     
     @pytest.mark.asyncio
     async def test_prompts_list_mcp_compliance(self):
-        """Test that prompts/list method is MCP compliant."""
-        # This method should be available as a tool
+        """Test that prompts/list is no longer handled at service level (now at server level)."""
+        # This method should NOT be available as a tool anymore
         tools = self.service.get_tools()
         prompts_tools = [t for t in tools if t["name"] == "prompts/list"]
-        assert len(prompts_tools) == 1
+        assert len(prompts_tools) == 0
         
-        # Should handle the method
+        # Should return error when called directly on service
         result = await self.service.handle_request("prompts/list", {})
-        assert not result.is_error
+        assert result.is_error
         
-        # Result should contain prompt information
+        # Result should contain error message
         text = result.content[0]["text"]
-        assert "prompts" in text.lower()
-        assert "instructions" in text.lower()
+        assert "unknown method" in text.lower()
