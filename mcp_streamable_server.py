@@ -3,6 +3,8 @@
 import asyncio
 import json
 import logging
+import time
+import sys
 from typing import Any, Dict, List, Optional
 import uuid
 
@@ -13,9 +15,106 @@ import uvicorn
 
 from mcp_service import get_departures, get_station_id
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# Set up structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('mvg_mcp_streamable.log')
+    ]
+)
 logger = logging.getLogger(__name__)
+
+class StructuredLogger:
+    """Structured logger with context and performance tracking."""
+    
+    def __init__(self, base_logger):
+        self.logger = base_logger
+    
+    def log_request(self, request_id: str, method: str, endpoint: str, **context):
+        """Log incoming request with context."""
+        self.logger.info(
+            f"REQUEST_START - ID: {request_id} | Method: {method} | Endpoint: {endpoint}",
+            extra={
+                "request_id": request_id,
+                "method": method,
+                "endpoint": endpoint,
+                "timestamp": time.time(),
+                **context
+            }
+        )
+    
+    def log_response(self, request_id: str, status_code: int, duration_ms: float, **context):
+        """Log response with performance metrics."""
+        self.logger.info(
+            f"REQUEST_END - ID: {request_id} | Status: {status_code} | Duration: {duration_ms:.2f}ms",
+            extra={
+                "request_id": request_id,
+                "status_code": status_code,
+                "duration_ms": duration_ms,
+                "timestamp": time.time(),
+                **context
+            }
+        )
+    
+    def log_tool_call(self, request_id: str, tool_name: str, arguments: Dict, **context):
+        """Log tool call with context."""
+        self.logger.info(
+            f"TOOL_CALL - ID: {request_id} | Tool: {tool_name} | Args: {json.dumps(arguments)}",
+            extra={
+                "request_id": request_id,
+                "tool_name": tool_name,
+                "arguments": arguments,
+                "timestamp": time.time(),
+                **context
+            }
+        )
+    
+    def log_tool_result(self, request_id: str, tool_name: str, success: bool, duration_ms: float, result_size: int = 0):
+        """Log tool result with performance metrics."""
+        status = "SUCCESS" if success else "ERROR"
+        self.logger.info(
+            f"TOOL_RESULT - ID: {request_id} | Tool: {tool_name} | Status: {status} | Duration: {duration_ms:.2f}ms | Size: {result_size}b",
+            extra={
+                "request_id": request_id,
+                "tool_name": tool_name,
+                "success": success,
+                "duration_ms": duration_ms,
+                "result_size": result_size,
+                "timestamp": time.time()
+            }
+        )
+    
+    def log_error(self, request_id: str, error: Exception, context: str = "", **extra_context):
+        """Log error with full context and stack trace."""
+        self.logger.error(
+            f"ERROR - ID: {request_id} | Context: {context} | Error: {str(error)}",
+            extra={
+                "request_id": request_id,
+                "error_type": type(error).__name__,
+                "error_message": str(error),
+                "context": context,
+                "timestamp": time.time(),
+                **extra_context
+            },
+            exc_info=True
+        )
+    
+    def log_performance(self, operation: str, duration_ms: float, **metrics):
+        """Log performance metrics."""
+        self.logger.info(
+            f"PERFORMANCE - Operation: {operation} | Duration: {duration_ms:.2f}ms",
+            extra={
+                "operation": operation,
+                "duration_ms": duration_ms,
+                "timestamp": time.time(),
+                **metrics
+            }
+        )
+
+# Create structured logger
+structured_logger = StructuredLogger(logger)
 
 app = FastAPI(title="MVG MCP Streamable Server", version="1.0.0")
 
@@ -66,15 +165,28 @@ class MVGMCPStreamableServer:
             }
         ]
 
-    async def handle_mcp_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle incoming MCP requests."""
+    async def handle_mcp_request(self, request: Dict[str, Any], request_uuid: str = None) -> Dict[str, Any]:
+        """Handle incoming MCP requests with structured logging."""
         method = request.get("method")
         request_id = request.get("id")
         params = request.get("params", {})
+        req_uuid = request_uuid or str(uuid.uuid4())
+        
+        start_time = time.time()
+        
+        # Log incoming request
+        structured_logger.log_request(
+            req_uuid, 
+            method, 
+            "mcp_request",
+            mcp_method=method,
+            mcp_id=request_id,
+            params_size=len(json.dumps(params)) if params else 0
+        )
 
         try:
             if method == "initialize":
-                return {
+                result = {
                     "jsonrpc": "2.0",
                     "id": request_id,
                     "result": {
@@ -92,33 +204,70 @@ class MVGMCPStreamableServer:
                         }
                     }
                 }
+                
+                # Log successful response
+                duration_ms = (time.time() - start_time) * 1000
+                structured_logger.log_response(
+                    req_uuid, 
+                    200, 
+                    duration_ms,
+                    response_size=len(json.dumps(result))
+                )
+                return result
             
             elif method == "notifications/initialized":
-                # No response needed for notifications
+                # Log notification
+                duration_ms = (time.time() - start_time) * 1000
+                structured_logger.log_response(req_uuid, 204, duration_ms, response_type="notification")
                 return None
             
             elif method == "tools/list":
-                return {
+                result = {
                     "jsonrpc": "2.0",
                     "id": request_id,
                     "result": {
                         "tools": self.tools
                     }
                 }
+                
+                # Log successful response
+                duration_ms = (time.time() - start_time) * 1000
+                structured_logger.log_response(
+                    req_uuid, 
+                    200, 
+                    duration_ms,
+                    response_size=len(json.dumps(result)),
+                    tools_count=len(self.tools)
+                )
+                return result
             
             elif method == "tools/call":
                 tool_name = params.get("name")
                 arguments = params.get("arguments", {})
                 
-                result = await self.call_tool(tool_name, arguments)
-                return {
+                # Log tool call
+                structured_logger.log_tool_call(req_uuid, tool_name, arguments)
+                
+                result = await self.call_tool(tool_name, arguments, req_uuid)
+                response = {
                     "jsonrpc": "2.0",
                     "id": request_id,
                     "result": result
                 }
+                
+                # Log successful response
+                duration_ms = (time.time() - start_time) * 1000
+                structured_logger.log_response(
+                    req_uuid, 
+                    200, 
+                    duration_ms,
+                    response_size=len(json.dumps(response)),
+                    tool_name=tool_name
+                )
+                return response
             
             else:
-                return {
+                error_response = {
                     "jsonrpc": "2.0",
                     "id": request_id,
                     "error": {
@@ -126,9 +275,30 @@ class MVGMCPStreamableServer:
                         "message": "Method not found"
                     }
                 }
+                
+                # Log error response
+                duration_ms = (time.time() - start_time) * 1000
+                structured_logger.log_response(
+                    req_uuid, 
+                    400, 
+                    duration_ms,
+                    error_code=-32601,
+                    unknown_method=method
+                )
+                return error_response
         
         except Exception as e:
-            logger.error(f"Error handling request {method}: {e}")
+            # Log error with full context
+            duration_ms = (time.time() - start_time) * 1000
+            structured_logger.log_error(
+                req_uuid, 
+                e, 
+                f"MCP request handling - method: {method}",
+                mcp_method=method,
+                mcp_id=request_id,
+                duration_ms=duration_ms
+            )
+            
             return {
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -138,15 +308,18 @@ class MVGMCPStreamableServer:
                 }
             }
 
-    async def call_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle tool calls."""
+    async def call_tool(self, name: str, arguments: Dict[str, Any], request_uuid: str = None) -> Dict[str, Any]:
+        """Handle tool calls with structured logging and performance tracking."""
+        req_uuid = request_uuid or str(uuid.uuid4())
+        start_time = time.time()
+        
         try:
             if name == "get_departures":
                 station_name = arguments.get("station_name")
                 offset = arguments.get("offset", 0)
                 
                 if not station_name:
-                    return {
+                    result = {
                         "content": [
                             {
                                 "type": "text",
@@ -154,12 +327,39 @@ class MVGMCPStreamableServer:
                             }
                         ]
                     }
+                    
+                    # Log validation error
+                    duration_ms = (time.time() - start_time) * 1000
+                    structured_logger.log_tool_result(
+                        req_uuid, name, False, duration_ms, len(json.dumps(result))
+                    )
+                    return result
                 
-                logger.info(f"Getting departures for {station_name} with offset {offset}")
+                # Log API call start
+                api_start_time = time.time()
+                structured_logger.log_performance(
+                    f"mvg_api_call_start",
+                    0,
+                    station_name=station_name,
+                    offset=offset,
+                    request_id=req_uuid
+                )
+                
                 departures = await get_departures(station_name, offset)
+                api_duration_ms = (time.time() - api_start_time) * 1000
+                
+                # Log API call performance
+                structured_logger.log_performance(
+                    f"mvg_api_call_complete",
+                    api_duration_ms,
+                    station_name=station_name,
+                    offset=offset,
+                    departures_count=len(departures) if departures else 0,
+                    request_id=req_uuid
+                )
                 
                 if departures is None:
-                    return {
+                    result = {
                         "content": [
                             {
                                 "type": "text",
@@ -167,9 +367,16 @@ class MVGMCPStreamableServer:
                             }
                         ]
                     }
+                    
+                    # Log API error
+                    duration_ms = (time.time() - start_time) * 1000
+                    structured_logger.log_tool_result(
+                        req_uuid, name, False, duration_ms, len(json.dumps(result))
+                    )
+                    return result
                 
                 if not departures:
-                    return {
+                    result = {
                         "content": [
                             {
                                 "type": "text",
@@ -177,6 +384,13 @@ class MVGMCPStreamableServer:
                             }
                         ]
                     }
+                    
+                    # Log empty result
+                    duration_ms = (time.time() - start_time) * 1000
+                    structured_logger.log_tool_result(
+                        req_uuid, name, True, duration_ms, len(json.dumps(result))
+                    )
+                    return result
                 
                 # Format the response
                 result_text = f"Departures from {station_name}:\n\n"
@@ -186,7 +400,7 @@ class MVGMCPStreamableServer:
                         result_text += " (CANCELLED)"
                     result_text += "\n"
                 
-                return {
+                result = {
                     "content": [
                         {
                             "type": "text",
@@ -194,12 +408,19 @@ class MVGMCPStreamableServer:
                         }
                     ]
                 }
+                
+                # Log successful result
+                duration_ms = (time.time() - start_time) * 1000
+                structured_logger.log_tool_result(
+                    req_uuid, name, True, duration_ms, len(json.dumps(result))
+                )
+                return result
             
             elif name == "find_station":
                 station_name = arguments.get("station_name")
                 
                 if not station_name:
-                    return {
+                    result = {
                         "content": [
                             {
                                 "type": "text",
@@ -207,16 +428,42 @@ class MVGMCPStreamableServer:
                             }
                         ]
                     }
+                    
+                    # Log validation error
+                    duration_ms = (time.time() - start_time) * 1000
+                    structured_logger.log_tool_result(
+                        req_uuid, name, False, duration_ms, len(json.dumps(result))
+                    )
+                    return result
                 
-                logger.info(f"Finding station ID for {station_name}")
+                # Log API call start
+                api_start_time = time.time()
+                structured_logger.log_performance(
+                    f"mvg_station_lookup_start",
+                    0,
+                    station_name=station_name,
+                    request_id=req_uuid
+                )
+                
                 station_id = await get_station_id(station_name)
+                api_duration_ms = (time.time() - api_start_time) * 1000
+                
+                # Log API call performance
+                structured_logger.log_performance(
+                    f"mvg_station_lookup_complete",
+                    api_duration_ms,
+                    station_name=station_name,
+                    found=bool(station_id),
+                    station_id=station_id,
+                    request_id=req_uuid
+                )
                 
                 if station_id:
                     text = f"Station '{station_name}' found with ID: {station_id}"
                 else:
                     text = f"Station '{station_name}' not found"
                 
-                return {
+                result = {
                     "content": [
                         {
                             "type": "text",
@@ -224,9 +471,16 @@ class MVGMCPStreamableServer:
                         }
                     ]
                 }
+                
+                # Log successful result
+                duration_ms = (time.time() - start_time) * 1000
+                structured_logger.log_tool_result(
+                    req_uuid, name, True, duration_ms, len(json.dumps(result))
+                )
+                return result
             
             else:
-                return {
+                result = {
                     "content": [
                         {
                             "type": "text",
@@ -234,10 +488,27 @@ class MVGMCPStreamableServer:
                         }
                     ]
                 }
+                
+                # Log unknown tool error
+                duration_ms = (time.time() - start_time) * 1000
+                structured_logger.log_tool_result(
+                    req_uuid, name, False, duration_ms, len(json.dumps(result))
+                )
+                return result
         
         except Exception as e:
-            logger.error(f"Error in tool call {name}: {e}")
-            return {
+            # Log error with full context
+            duration_ms = (time.time() - start_time) * 1000
+            structured_logger.log_error(
+                req_uuid, 
+                e, 
+                f"Tool execution - tool: {name}",
+                tool_name=name,
+                arguments=arguments,
+                duration_ms=duration_ms
+            )
+            
+            result = {
                 "content": [
                     {
                         "type": "text",
@@ -245,74 +516,192 @@ class MVGMCPStreamableServer:
                     }
                 ]
             }
+            
+            # Log error result
+            structured_logger.log_tool_result(
+                req_uuid, name, False, duration_ms, len(json.dumps(result))
+            )
+            return result
 
 # Create server instance
 mcp_server = MVGMCPStreamableServer()
 
 @app.post("/mcp")
 async def handle_mcp_post(request: Request):
-    """Handle MCP requests over HTTP POST."""
+    """Handle MCP requests over HTTP POST with structured logging."""
+    request_uuid = str(uuid.uuid4())
+    start_time = time.time()
+    
+    # Log incoming HTTP request
+    structured_logger.log_request(
+        request_uuid,
+        "POST",
+        "/mcp",
+        client_ip=request.client.host if request.client else "unknown",
+        user_agent=request.headers.get("user-agent", "unknown")
+    )
+    
     try:
         body = await request.json()
-        response = await mcp_server.handle_mcp_request(body)
+        response = await mcp_server.handle_mcp_request(body, request_uuid)
         
         if response is None:
-            return JSONResponse(content={}, status_code=204)  # No content for notifications
+            # Log notification response
+            duration_ms = (time.time() - start_time) * 1000
+            structured_logger.log_response(request_uuid, 204, duration_ms, response_type="notification")
+            return JSONResponse(content={}, status_code=204)
         
+        # Log successful response
+        duration_ms = (time.time() - start_time) * 1000
+        structured_logger.log_response(
+            request_uuid, 
+            200, 
+            duration_ms,
+            response_size=len(json.dumps(response))
+        )
         return JSONResponse(content=response)
     
-    except Exception as e:
-        logger.error(f"Error handling HTTP MCP request: {e}")
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "error": {
-                    "code": -32700,
-                    "message": "Parse error"
-                }
-            },
-            status_code=400
+    except json.JSONDecodeError as e:
+        # Log JSON parse error
+        duration_ms = (time.time() - start_time) * 1000
+        structured_logger.log_error(
+            request_uuid,
+            e,
+            "JSON parsing error in POST /mcp",
+            endpoint="/mcp",
+            method="POST",
+            duration_ms=duration_ms
         )
-
-@app.get("/mcp")
-async def handle_mcp_get(request: Request):
-    """Handle MCP GET requests - StreamableHttp transport."""
-    logger.info("StreamableHttp GET request received")
-    
-    # For StreamableHttp, we return a streaming response with JSON-RPC messages
-    async def generate_stream():
-        # Send initial capabilities
-        init_response = {
+        
+        error_response = {
             "jsonrpc": "2.0",
-            "method": "notifications/initialized",
-            "params": {
-                "protocolVersion": "2025-06-18",
-                "capabilities": {
-                    "tools": {"listChanged": False},
-                    "experimental": {},
-                    "transport": {
-                        "streamable": True
-                    }
-                },
-                "serverInfo": {
-                    "name": "mvg-mcp-streamable",
-                    "version": "1.0.0"
-                }
+            "error": {
+                "code": -32700,
+                "message": "Parse error"
             }
         }
         
-        yield json.dumps(init_response) + "\n"
+        structured_logger.log_response(request_uuid, 400, duration_ms, error_code=-32700)
+        return JSONResponse(content=error_response, status_code=400)
+    
+    except Exception as e:
+        # Log unexpected error
+        duration_ms = (time.time() - start_time) * 1000
+        structured_logger.log_error(
+            request_uuid,
+            e,
+            "Unexpected error in POST /mcp",
+            endpoint="/mcp",
+            method="POST",
+            duration_ms=duration_ms
+        )
         
-        # Keep connection alive and handle any incoming requests
-        # In a real implementation, this would handle bidirectional communication
-        while True:
-            await asyncio.sleep(30)  # Keepalive every 30 seconds
-            keepalive = {
-                "jsonrpc": "2.0",
-                "method": "notifications/keepalive",
-                "params": {}
+        error_response = {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,
+                "message": "Internal error"
             }
-            yield json.dumps(keepalive) + "\n"
+        }
+        
+        structured_logger.log_response(request_uuid, 500, duration_ms, error_code=-32603)
+        return JSONResponse(content=error_response, status_code=500)
+
+@app.get("/mcp")
+async def handle_mcp_get(request: Request):
+    """Handle MCP GET requests - StreamableHttp transport with structured logging."""
+    request_uuid = str(uuid.uuid4())
+    start_time = time.time()
+    
+    # Log incoming streaming request
+    structured_logger.log_request(
+        request_uuid,
+        "GET",
+        "/mcp",
+        client_ip=request.client.host if request.client else "unknown",
+        user_agent=request.headers.get("user-agent", "unknown"),
+        transport="StreamableHttp"
+    )
+    
+    # For StreamableHttp, we return a streaming response with JSON-RPC messages
+    async def generate_stream():
+        try:
+            # Send initial capabilities
+            init_response = {
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized",
+                "params": {
+                    "protocolVersion": "2025-06-18",
+                    "capabilities": {
+                        "tools": {"listChanged": False},
+                        "experimental": {},
+                        "transport": {
+                            "streamable": True
+                        }
+                    },
+                    "serverInfo": {
+                        "name": "mvg-mcp-streamable",
+                        "version": "1.0.0"
+                    }
+                }
+            }
+            
+            # Log stream initialization
+            structured_logger.log_performance(
+                "stream_init",
+                (time.time() - start_time) * 1000,
+                request_id=request_uuid,
+                message_size=len(json.dumps(init_response))
+            )
+            
+            yield json.dumps(init_response) + "\n"
+            
+            # Keep connection alive and handle any incoming requests
+            keepalive_count = 0
+            while True:
+                await asyncio.sleep(30)  # Keepalive every 30 seconds
+                keepalive_count += 1
+                
+                keepalive = {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/keepalive",
+                    "params": {"sequence": keepalive_count}
+                }
+                
+                # Log keepalive performance
+                structured_logger.log_performance(
+                    "stream_keepalive",
+                    0,
+                    request_id=request_uuid,
+                    keepalive_count=keepalive_count,
+                    message_size=len(json.dumps(keepalive))
+                )
+                
+                yield json.dumps(keepalive) + "\n"
+                
+        except asyncio.CancelledError:
+            # Log stream cancellation
+            duration_ms = (time.time() - start_time) * 1000
+            structured_logger.log_response(
+                request_uuid, 
+                200, 
+                duration_ms, 
+                response_type="stream_cancelled",
+                keepalive_count=keepalive_count
+            )
+            raise
+        except Exception as e:
+            # Log stream error
+            duration_ms = (time.time() - start_time) * 1000
+            structured_logger.log_error(
+                request_uuid,
+                e,
+                "StreamableHttp stream error",
+                endpoint="/mcp",
+                method="GET",
+                duration_ms=duration_ms
+            )
+            raise
     
     return StreamingResponse(
         generate_stream(),
