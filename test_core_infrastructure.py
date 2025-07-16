@@ -1,6 +1,7 @@
 """Test script to verify core infrastructure implementation."""
 
 import asyncio
+import pytest
 from datetime import datetime
 from data.models import ServiceRequest, ServiceResponse, ServiceInfo, ToolDefinition, ToolResult
 from services.base_service import BaseService
@@ -42,6 +43,7 @@ class TestService(BaseService):
         }]
 
 
+@pytest.mark.asyncio
 async def test_core_infrastructure():
     """Test the core infrastructure components."""
     print("Testing core infrastructure...")

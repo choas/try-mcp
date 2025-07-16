@@ -2,8 +2,10 @@
 
 import asyncio
 import json
+import pytest
 from mcp_server import MVGMCPServer
 
+@pytest.mark.asyncio
 async def test_mvg_mcp():
     """Test the MVG MCP server."""
     print("Testing MVG MCP Server...")
