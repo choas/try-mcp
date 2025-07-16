@@ -146,7 +146,24 @@ Add this to your Claude Desktop configuration file (typically `~/Library/Applica
 
 Replace `/path/to/your/mvg-mcp-project` with the actual path to your project directory.
 
-**For Streamable MCP Server:**
+**For Streamable MCP Server (via mcp-remote):**
+
+```json
+{
+  "mcpServers": {
+    "mvg-mcp-http": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://localhost:8002/mcp"]
+    }
+  }
+}
+```
+
+This uses the `mcp-remote` npm package to bridge between Claude Desktop's stdio protocol and your HTTP streamable server.
+
+> **Prerequisites for mcp-remote**: Ensure you have Node.js installed. The `npx` command will automatically download and run the `mcp-remote` package.
+
+**Alternative: Direct Python execution (for local development):**
 
 ```json
 {
@@ -165,8 +182,6 @@ Replace `/path/to/your/mvg-mcp-project` with the actual path to your project dir
 
 Replace `/path/to/your/mvg-mcp-project` with the actual path to your project directory.
 
-> **Note**: Claude Desktop works best with stdio-based MCP servers. The streamable server is designed for future MCP clients and other integrations that support StreamableHttp transport.
-
 ## Testing
 
 **Test the stdio MCP server locally:**
@@ -178,6 +193,9 @@ python test_mcp.py
 ```bash
 # First, start the streamable server in one terminal:
 python mcp_streamable_server.py
+
+# For debug logging (shows request/response data):
+DEBUG=true python mcp_streamable_server.py
 
 # Then test the endpoints:
 curl http://localhost:8002/health
