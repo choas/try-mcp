@@ -276,6 +276,27 @@ async def handle_individual_service_mcp(service, request: Dict[str, Any], reques
                 }
             }
         
+        elif method == "prompts/list":
+            # Check if this service supports prompts
+            if service.supports_prompts():
+                # Get prompts from this specific service
+                prompts = service.get_prompts()
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "prompts": prompts
+                    }
+                }
+            else:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "prompts": []
+                    }
+                }
+        
         elif method == "tools/call":
             tool_name = params.get("name")
             arguments = params.get("arguments", {})
