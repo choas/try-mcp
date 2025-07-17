@@ -45,6 +45,11 @@ def main():
     print("  • Direct REST: http://localhost:8003/services/mvg/v1/find_station")
     print()
     
+    print("🌤️ Weather Service Endpoints:")
+    print("  • MCP Protocol: http://localhost:8003/services/weather/v1")
+    print("  • Direct REST: http://localhost:8003/services/weather/v1/get_weather_forecast")
+    print()
+    
     print("📡 MCP Protocol Examples:")
     print("  # Initialize Mindful Service")
     print('  curl -X POST http://localhost:8003/services/mindful/v1 \\')
@@ -56,6 +61,11 @@ def main():
     print('    -H "Content-Type: application/json" \\')
     print('    -d \'{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "get_mindful_sentence", "arguments": {}}}\'')
     print()
+    print("  # Get Weather Forecast via MCP")
+    print('  curl -X POST http://localhost:8003/services/weather/v1 \\')
+    print('    -H "Content-Type: application/json" \\')
+    print('    -d \'{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "get_weather_forecast", "arguments": {"location": "Berlin"}}}\'')
+    print()
     
     print("🔧 Direct REST API Examples:")
     print("  # Get Mindful Sentence")
@@ -65,6 +75,11 @@ def main():
     print('  curl -X POST http://localhost:8003/services/mvg/v1/get_departures \\')
     print('    -H "Content-Type: application/json" \\')
     print('    -d \'{"station_name": "Hauptbahnhof"}\'')
+    print()
+    print("  # Get Weather Forecast")
+    print('  curl -X POST http://localhost:8003/services/weather/v1/get_weather_forecast \\')
+    print('    -H "Content-Type: application/json" \\')
+    print('    -d \'{"location": "Tokyo"}\'')
     print()
     
     print("🎯 Key Benefits:")

@@ -119,6 +119,7 @@ class ServiceRegistry:
             {"module": "services.emoji_oracle_service", "class": "EmojiOracleService"},
             {"module": "services.fortune_service", "class": "FortuneService"},
             {"module": "services.timestamp_service", "class": "TimestampService"},
+            {"module": "services.weather_service", "class": "WeatherService"},
         ]
         
         for service_config in service_modules:
