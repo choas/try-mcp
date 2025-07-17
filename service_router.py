@@ -1,10 +1,14 @@
 """Service router for the multi-service MCP platform."""
 
+import logging
 import re
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 from data.models import ServiceRequest, ServiceResponse, ServiceInfo
 from services.base_service import BaseService
+from utils.error_formatter import ErrorFormatter, ErrorCode, ErrorHandler
+
+logger = logging.getLogger(__name__)
 
 
 class ServiceRouter:
@@ -130,25 +134,67 @@ class ServiceRouter:
         Returns:
             ServiceResponse with result or error
         """
+        logger.info(f"ROUTE_REQUEST - URL: {url}, Method: {method}, RequestID: {request_id}")
+        
         # Parse the URL
         parsed = self.parse_url(url)
         if not parsed:
+            error_response = ErrorFormatter.format_error(
+                code=ErrorCode.INVALID_URL_FORMAT,
+                message="Invalid URL format. Expected: /<service>/v<version>",
+                data={"available_services": self.get_available_services()},
+                request_id=request_id
+            )
+            
+            ErrorHandler.log_error(
+                error_type="ROUTING_ERROR",
+                message=f"Invalid URL format: {url}",
+                context={"url": url, "request_id": request_id}
+            )
+            
             return ServiceResponse(
                 success=False,
                 error="Invalid URL format. Expected: /<service>/v<version>",
-                data={"available_services": self.get_available_services()}
+                data={"available_services": self.get_available_services(), "error_code": ErrorCode.INVALID_URL_FORMAT.value}
             )
         
         service_name, version = parsed
+        logger.debug(f"Parsed URL: service={service_name}, version={version}")
         
         # Find the service
         service = self.get_service(service_name, version)
         if not service:
             available_versions = self.get_service_versions(service_name)
+            
             if available_versions:
+                # Service exists but version not found
+                error_code = ErrorCode.VERSION_NOT_SUPPORTED
                 error_msg = f"Service '{service_name}' version '{version}' not found. Available versions: {available_versions}"
+                
+                ErrorHandler.log_error(
+                    error_type="VERSION_ERROR",
+                    message=error_msg,
+                    context={
+                        "service": service_name,
+                        "version": version,
+                        "available_versions": available_versions,
+                        "request_id": request_id
+                    }
+                )
             else:
+                # Service not found
+                error_code = ErrorCode.SERVICE_NOT_FOUND
                 error_msg = f"Service '{service_name}' not found. Available services: {self.get_available_services()}"
+                
+                ErrorHandler.log_error(
+                    error_type="SERVICE_ERROR",
+                    message=error_msg,
+                    context={
+                        "service": service_name,
+                        "available_services": self.get_available_services(),
+                        "request_id": request_id
+                    }
+                )
             
             return ServiceResponse(
                 success=False,
@@ -156,21 +202,56 @@ class ServiceRouter:
                 data={
                     "service": service_name,
                     "version": version,
-                    "available_services": self.get_available_services()
+                    "available_services": self.get_available_services(),
+                    "error_code": error_code.value
                 }
             )
         
         # Check service status
         if service.get_status() != "active":
+            error_msg = f"Service '{service_name}' is currently {service.get_status()}"
+            
+            ErrorHandler.log_error(
+                error_type="SERVICE_STATUS_ERROR",
+                message=error_msg,
+                context={
+                    "service": service_name,
+                    "status": service.get_status(),
+                    "request_id": request_id
+                }
+            )
+            
             return ServiceResponse(
                 success=False,
-                error=f"Service '{service_name}' is currently {service.get_status()}",
-                data={"service": service_name, "status": service.get_status()}
+                error=error_msg,
+                data={
+                    "service": service_name,
+                    "status": service.get_status(),
+                    "error_code": ErrorCode.SERVICE_UNAVAILABLE.value
+                }
             )
         
         try:
+            # Log the request
+            logger.info(f"SERVICE_REQUEST - Service: {service_name}, Version: {version}, Method: {method}")
+            
             # Route to the service
             result = await service.handle_request(method, params)
+            
+            # Log the response
+            is_error = result.is_error
+            log_level = logging.WARNING if is_error else logging.INFO
+            logger.log(
+                log_level,
+                f"SERVICE_RESPONSE - Service: {service_name}, Success: {not is_error}",
+                extra={
+                    "service": service_name,
+                    "version": version,
+                    "method": method,
+                    "is_error": is_error,
+                    "request_id": request_id
+                }
+            )
             
             return ServiceResponse(
                 success=True,
@@ -185,13 +266,28 @@ class ServiceRouter:
             )
             
         except Exception as e:
+            # Handle and log the exception
+            error_response, log_data = ErrorHandler.handle_exception(
+                exception=e,
+                error_type="SERVICE_EXECUTION_ERROR",
+                context={
+                    "service": service_name,
+                    "version": version,
+                    "method": method,
+                    "request_id": request_id
+                },
+                request_id=request_id
+            )
+            
             return ServiceResponse(
                 success=False,
                 error=f"Service error: {str(e)}",
                 data={
                     "service": service_name,
                     "version": version,
-                    "method": method
+                    "method": method,
+                    "error_code": ErrorCode.SERVICE_ERROR.value,
+                    "error_type": "SERVICE_EXECUTION_ERROR"
                 }
             )
     

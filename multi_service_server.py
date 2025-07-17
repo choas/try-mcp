@@ -15,6 +15,7 @@ import uvicorn
 
 from service_router import ServiceRouter
 from service_registry import ServiceRegistry
+from utils.error_formatter import ErrorFormatter, ErrorCode, ErrorHandler
 
 # Set up structured logging
 import os
@@ -175,14 +176,17 @@ class MultiServiceMCPServer:
                 
                 # Parse service and method from tool name (format: service_method)
                 if "_" not in tool_name:
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "error": {
-                            "code": -32602,
-                            "message": f"Invalid tool name format: {tool_name}. Expected: service_method"
-                        }
-                    }
+                    ErrorHandler.log_error(
+                        error_type="INVALID_TOOL_FORMAT",
+                        message=f"Invalid tool name format: {tool_name}",
+                        context={"tool_name": tool_name, "request_id": req_uuid}
+                    )
+                    
+                    return ErrorFormatter.format_error(
+                        code=ErrorCode.INVALID_PARAMS,
+                        message=f"Invalid tool name format: {tool_name}. Expected: service_method",
+                        request_id=request_id
+                    )
                 
                 service_name, method_name = tool_name.split("_", 1)
                 
@@ -206,35 +210,39 @@ class MultiServiceMCPServer:
                         "result": response.data["result"]
                     }
                 else:
+                    # Get error code from response data if available
+                    error_code = response.data.get("error_code", ErrorCode.INTERNAL_ERROR.value)
+                    
                     return {
                         "jsonrpc": "2.0",
                         "id": request_id,
                         "error": {
-                            "code": -32603,
-                            "message": response.error
+                            "code": error_code,
+                            "message": response.error,
+                            "data": response.data
                         }
                     }
             
             else:
-                return {
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "error": {
-                        "code": -32601,
-                        "message": "Method not found"
-                    }
-                }
+                ErrorHandler.log_error(
+                    error_type="METHOD_NOT_FOUND",
+                    message=f"Method not found: {method}",
+                    context={"method": method, "request_id": req_uuid}
+                )
+                
+                return ErrorFormatter.method_not_found_error(
+                    method=method,
+                    available_methods=["initialize", "tools/list", "tools/call", "prompts/list"],
+                    request_id=request_id
+                )
         
         except Exception as e:
             logger.error(f"Error handling request {method}: {e}", exc_info=True)
-            return {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "error": {
-                    "code": 0,
-                    "message": str(e)
-                }
-            }
+            return ErrorFormatter.format_error(
+                code=ErrorCode.INTERNAL_ERROR,
+                message=str(e),
+                request_id=request_id
+            )
 
 async def handle_individual_service_mcp(service, request: Dict[str, Any], request_uuid: str = None) -> Dict[str, Any]:
     """Handle MCP requests for a specific individual service."""
@@ -316,25 +324,37 @@ async def handle_individual_service_mcp(service, request: Dict[str, Any], reques
             }
         
         else:
-            return {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "error": {
-                    "code": -32601,
-                    "message": "Method not found"
+            ErrorHandler.log_error(
+                error_type="METHOD_NOT_FOUND",
+                message=f"Method not found in individual service: {method}",
+                context={
+                    "service": service.name,
+                    "version": service.version,
+                    "method": method,
+                    "request_id": req_uuid
                 }
-            }
+            )
+            
+            return ErrorFormatter.method_not_found_error(
+                method=method,
+                available_methods=["initialize", "tools/list", "tools/call", "prompts/list"],
+                request_id=request_id
+            )
     
     except Exception as e:
-        logger.error(f"Error in individual service MCP for {service.name}: {e}", exc_info=True)
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "error": {
-                "code": 0,
-                "message": str(e)
-            }
-        }
+        error_response, log_data = ErrorHandler.handle_exception(
+            exception=e,
+            error_type="INDIVIDUAL_SERVICE_ERROR",
+            context={
+                "service": service.name,
+                "version": service.version,
+                "method": method,
+                "request_id": req_uuid
+            },
+            request_id=request_id
+        )
+        
+        return error_response
 
 # Create server instance
 mcp_server = MultiServiceMCPServer()
@@ -358,24 +378,18 @@ async def handle_mcp_post(request: Request):
     
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {e}")
-        error_response = {
-            "jsonrpc": "2.0",
-            "error": {
-                "code": -32700,
-                "message": "Parse error"
-            }
-        }
+        error_response = ErrorFormatter.format_error(
+            code=ErrorCode.PARSE_ERROR,
+            message="Parse error"
+        )
         return JSONResponse(content=error_response, status_code=400)
     
     except Exception as e:
-        logger.error(f"Unexpected error in POST /mcp: {e}", exc_info=True)
-        error_response = {
-            "jsonrpc": "2.0",
-            "error": {
-                "code": -32603,
-                "message": "Internal error"
-            }
-        }
+        error_response, log_data = ErrorHandler.handle_exception(
+            exception=e,
+            error_type="HTTP_ENDPOINT_ERROR",
+            context={"endpoint": "/mcp", "request_id": request_uuid}
+        )
         return JSONResponse(content=error_response, status_code=500)
 
 @app.get("/services")
@@ -432,14 +446,21 @@ async def handle_service_mcp(service_name: str, version: str, request: Request):
         # Get the specific service
         service = mcp_server.router.get_service(service_name, f"v{version}")
         if not service:
-            error_response = {
-                "jsonrpc": "2.0",
-                "id": body.get("id"),
-                "error": {
-                    "code": -32601,
-                    "message": f"Service '{service_name}' version 'v{version}' not found"
+            ErrorHandler.log_error(
+                error_type="SERVICE_NOT_FOUND",
+                message=f"Service '{service_name}' version 'v{version}' not found",
+                context={
+                    "service": service_name,
+                    "version": version,
+                    "request_id": request_uuid
                 }
-            }
+            )
+            
+            error_response = ErrorFormatter.service_not_found_error(
+                service_name=service_name,
+                available_services=mcp_server.router.get_available_services(),
+                request_id=body.get("id")
+            )
             return JSONResponse(content=error_response, status_code=404)
         
         # Handle MCP protocol for this specific service
@@ -453,25 +474,24 @@ async def handle_service_mcp(service_name: str, version: str, request: Request):
     
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error for {service_name}/v{version}: {e}")
-        error_response = {
-            "jsonrpc": "2.0",
-            "error": {
-                "code": -32700,
-                "message": "Parse error"
-            }
-        }
+        error_response = ErrorFormatter.format_error(
+            code=ErrorCode.PARSE_ERROR,
+            message="Parse error",
+            request_id=body.get("id") if 'body' in locals() else None
+        )
         return JSONResponse(content=error_response, status_code=400)
     
     except Exception as e:
-        logger.error(f"Unexpected error in {service_name}/v{version}: {e}", exc_info=True)
-        error_response = {
-            "jsonrpc": "2.0",
-            "id": body.get("id") if 'body' in locals() else None,
-            "error": {
-                "code": -32603,
-                "message": "Internal error"
-            }
-        }
+        error_response, log_data = ErrorHandler.handle_exception(
+            exception=e,
+            error_type="SERVICE_ENDPOINT_ERROR",
+            context={
+                "service": service_name,
+                "version": version,
+                "request_id": request_uuid
+            },
+            request_id=body.get("id") if 'body' in locals() else None
+        )
         return JSONResponse(content=error_response, status_code=500)
 
 @app.post("/services/{service_name}/v{version}/{method}")
@@ -497,6 +517,21 @@ async def call_service_method(service_name: str, version: str, method: str, requ
     if response.success:
         return response.data
     else:
+        # Format the error response using our error formatter
+        error_code = response.data.get("error_code", ErrorCode.SERVICE_ERROR.value)
+        
+        ErrorHandler.log_error(
+            error_type="DIRECT_CALL_ERROR",
+            message=response.error,
+            context={
+                "service": service_name,
+                "version": f"v{version}",
+                "method": method,
+                "request_id": request_id,
+                "error_code": error_code
+            }
+        )
+        
         raise HTTPException(status_code=400, detail=response.error)
 
 @app.get("/")

@@ -1,1 +1,1 @@
-# Utils package
+"""Utility modules for the multi-service MCP platform."""
