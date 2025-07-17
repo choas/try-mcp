@@ -15,3 +15,8 @@ yarl==1.20.1
 mcp>=1.0.0
 fastapi
 uvicorn[standard]
+pytest
+pytest-asyncio
+httpx
+psutil
+statistics
