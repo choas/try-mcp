@@ -1,0 +1,78 @@
+{
+    "lucky_numbers_success": {
+        "blessed_numbers": [7, 12, 23, 42, 45],
+        "scenario": "lottery",
+        "scenario_description": "Numbers for lottery games and jackpots",
+        "cosmic_alignment": "80%",
+        "mystical_methodology": "Golden Ratio Harmonics",
+        "energy_level": "medium",
+        "energy_description": "Balanced energetic flow with moderate cosmic alignment",
+        "message": "The mystical forces have smiled upon your number selection.",
+        "emoji": "🎯 🍀 💰",
+        "timestamp": "2023-01-01T12:00:00",
+        "status": "success"
+    },
+    "emoji_oracle_success": {
+        "emojis": ["🔮", "✨", "🌟"],
+        "message": "A mystical message from the emoji oracle",
+        "timestamp": "2023-01-01T12:00:00",
+        "status": "success"
+    },
+    "mindful_success": {
+        "sentence": "Embrace the present moment with gratitude and awareness.",
+        "timestamp": "2023-01-01T12:00:00",
+        "status": "success"
+    },
+    "weather_success": {
+        "temperature": 22,
+        "conditions": "sunny",
+        "forecast": "Tomorrow will be a beautiful day with sunny skies",
+        "timestamp": "2023-01-01T12:00:00",
+        "status": "success"
+    },
+    "timestamp_success": {
+        "timestamp": "2023-06-15T14:30:45",
+        "iso8601": "2023-06-15T14:30:45",
+        "status": "success"
+    },
+    "fortune_success": {
+        "fortune": "The dancing shadows whisper secrets to those who listen with their eyes.",
+        "timestamp": "2023-01-01T12:00:00",
+        "status": "success"
+    },
+    "error_invalid_method": {
+        "jsonrpc": "2.0",
+        "id": "test-id",
+        "error": {
+            "code": -32601,
+            "message": "Method not found",
+            "data": {
+                "available_methods": ["tools/list", "tools/call", "prompts/list"]
+            }
+        }
+    },
+    "error_invalid_service": {
+        "jsonrpc": "2.0",
+        "id": "test-id",
+        "error": {
+            "code": -32601,
+            "message": "Service not found",
+            "data": {
+                "service": "invalid-service",
+                "available_services": ["mvg", "mindful", "weather", "emoji-oracle", "timestamp", "fortune", "lucky-numbers"]
+            }
+        }
+    },
+    "error_invalid_tool": {
+        "jsonrpc": "2.0",
+        "id": "test-id",
+        "error": {
+            "code": -32601,
+            "message": "Method not found",
+            "data": {
+                "method": "invalid_tool",
+                "available_methods": ["generate_blessed_numbers"]
+            }
+        }
+    }
+}

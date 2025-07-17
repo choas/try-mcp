@@ -1,0 +1,98 @@
+{
+    "tools_list": {
+        "jsonrpc": "2.0",
+        "method": "tools/list",
+        "id": "test-id"
+    },
+    "tools_call_lucky_numbers": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "lucky-numbers_generate_blessed_numbers",
+            "arguments": {
+                "scenario": "lottery",
+                "count": 5,
+                "min_value": 1,
+                "max_value": 49,
+                "energy_level": "medium"
+            }
+        },
+        "id": "test-id"
+    },
+    "tools_call_emoji_oracle": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "emoji-oracle_get_emoji_oracle",
+            "arguments": {}
+        },
+        "id": "test-id"
+    },
+    "tools_call_mindful": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "mindful_get_mindful_sentence",
+            "arguments": {}
+        },
+        "id": "test-id"
+    },
+    "tools_call_weather": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "weather_get_weather_forecast",
+            "arguments": {}
+        },
+        "id": "test-id"
+    },
+    "tools_call_timestamp": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "timestamp_generate_random_timestamp",
+            "arguments": {
+                "start": "2023-01-01T00:00:00",
+                "end": "2023-12-31T23:59:59"
+            }
+        },
+        "id": "test-id"
+    },
+    "tools_call_fortune": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "fortune_get_fortune_cookie",
+            "arguments": {}
+        },
+        "id": "test-id"
+    },
+    "prompts_list": {
+        "jsonrpc": "2.0",
+        "method": "prompts/list",
+        "id": "test-id"
+    },
+    "invalid_method": {
+        "jsonrpc": "2.0",
+        "method": "invalid_method",
+        "id": "test-id"
+    },
+    "invalid_service": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "invalid-service_method",
+            "arguments": {}
+        },
+        "id": "test-id"
+    },
+    "invalid_tool": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "lucky-numbers_invalid_tool",
+            "arguments": {}
+        },
+        "id": "test-id"
+    }
+}

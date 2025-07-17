@@ -77,14 +77,14 @@
   - Write unit tests for configuration loading and service management
   - _Requirements: 7.4, 1.4_
 
-- [ ] 12. Reorganize test structure
+- [x] 12. Reorganize test structure
   - Create dedicated test directories for unit, integration, and performance tests
   - Move existing tests into appropriate directories
   - Standardize test naming conventions
   - Update imports and references in test files
   - _Requirements: 1.3, 7.1_
 
-- [ ] 13. Create test fixtures and helpers
+- [-] 13. Create test fixtures and helpers
   - Implement reusable test fixtures for common test scenarios
   - Create helper functions for test setup and teardown
   - Standardize mock data and response formats
