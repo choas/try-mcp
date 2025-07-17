@@ -328,40 +328,47 @@ class LuckyNumbersService(BaseService):
         # Apply energy factor to the random seed for consistent but varied results
         energy_factor = self.ENERGY_LEVELS[energy_level]["factor"]
         seed_value = int(get_datetime_now().timestamp() * energy_factor) % 10000
-        random.seed(seed_value)
+        
+        # Use a local random instance instead of affecting the global state
+        local_random = random.Random(seed_value)
         
         # Generate unique numbers
         numbers = set()
-        while len(numbers) < count:
+        # Limit the number of attempts to prevent infinite loops
+        max_attempts = count * 100
+        attempts = 0
+        
+        while len(numbers) < count and attempts < max_attempts:
+            attempts += 1
             # Use scenario-specific logic to generate numbers
             if scenario == "lottery":
                 # For lottery, ensure truly random distribution
-                num = random.randint(min_value, max_value)
+                num = local_random.randint(min_value, max_value)
             elif scenario == "date":
                 # For dates, prefer certain "lucky" days
                 lucky_days = [7, 11, 14, 21, 28]
-                if random.random() < 0.4 and any(day <= max_value for day in lucky_days):
+                if local_random.random() < 0.4 and any(day <= max_value for day in lucky_days):
                     valid_lucky_days = [day for day in lucky_days if min_value <= day <= max_value]
                     if valid_lucky_days:
-                        num = random.choice(valid_lucky_days)
+                        num = local_random.choice(valid_lucky_days)
                     else:
-                        num = random.randint(min_value, max_value)
+                        num = local_random.randint(min_value, max_value)
                 else:
-                    num = random.randint(min_value, max_value)
+                    num = local_random.randint(min_value, max_value)
             elif scenario == "love":
                 # For love, prefer numbers with patterns or symmetry
-                if random.random() < 0.3 and max_value >= 11:
+                if local_random.random() < 0.3 and max_value >= 11:
                     # Generate repeating digits if possible (11, 22, etc.)
                     possible_repeats = [i * 11 for i in range(1, 10) if min_value <= i * 11 <= max_value]
                     if possible_repeats:
-                        num = random.choice(possible_repeats)
+                        num = local_random.choice(possible_repeats)
                     else:
-                        num = random.randint(min_value, max_value)
+                        num = local_random.randint(min_value, max_value)
                 else:
-                    num = random.randint(min_value, max_value)
+                    num = local_random.randint(min_value, max_value)
             else:
                 # For other scenarios, use standard random generation
-                num = random.randint(min_value, max_value)
+                num = local_random.randint(min_value, max_value)
                 
             numbers.add(num)
             
@@ -378,8 +385,12 @@ class LuckyNumbersService(BaseService):
         hour_factor = current_time.hour / 24.0  # 0.0 to 1.0 based on hour of day
         minute_factor = current_time.minute / 60.0  # 0.0 to 1.0 based on minute
         
+        # Use a local random instance with a seed based on current time
+        seed_value = int(current_time.timestamp()) % 10000
+        local_random = random.Random(seed_value)
+        
         # Calculate alignment with some randomness but weighted toward the energy level range
-        base = min_alignment + (max_alignment - min_alignment) * random.random()
+        base = min_alignment + (max_alignment - min_alignment) * local_random.random()
         time_influence = (hour_factor + minute_factor) * 5  # Up to 5% influence from time
         
         # Final alignment with some scenario-specific adjustment
@@ -395,7 +406,10 @@ class LuckyNumbersService(BaseService):
     def _select_methodology(self, scenario: str) -> str:
         """Select a mystical methodology explanation for the number generation."""
         methodologies = self.SCENARIOS[scenario]["methodologies"]
-        return random.choice(methodologies)
+        # Use a local random instance with a seed based on scenario
+        seed_value = hash(scenario + str(get_datetime_now().date())) % 10000
+        local_random = random.Random(seed_value)
+        return local_random.choice(methodologies)
 
     def _generate_encouraging_message(self, scenario: str, alignment: int) -> str:
         """Generate an encouraging message based on scenario and alignment."""
@@ -453,8 +467,11 @@ class LuckyNumbersService(BaseService):
         all_messages = base_messages.copy()
         if scenario in scenario_specific_messages:
             all_messages.extend(scenario_specific_messages[scenario])
-            
-        return random.choice(all_messages)
+        
+        # Use a local random instance with a seed based on scenario and alignment
+        seed_value = hash(scenario + str(alignment) + str(get_datetime_now().hour)) % 10000
+        local_random = random.Random(seed_value)
+        return local_random.choice(all_messages)
         
     def _format_success_response(self, result: Dict) -> str:
         """Format the successful response as a human-readable text.
