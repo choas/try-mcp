@@ -17,6 +17,7 @@ graph TB
     Router --> Emoji[Emoji Oracle Service]
     Router --> Timestamp[Random Timestamp Service]
     Router --> Fortune[Fortune Cookie Service]
+    Router --> LuckyNumbers[Lucky Numbers Service]
     
     MVG --> MVGApi[MVG API]
     Fortune --> LLM[LLM/Generator]
@@ -44,6 +45,7 @@ Supported routes:
 - `/emoji-oracle/v1` - Cryptic emoji messages service
 - `/timestamp/v1` - Random timestamp generator service
 - `/fortune/v1` - Digital fortune cookie service
+- `/lucky-numbers/v1` - Mystical number generation service
 
 ## Components and Interfaces
 
@@ -97,6 +99,14 @@ class BaseService:
 - Caches phrases per hour
 - Tools: `get_fortune_cookie`
 
+##### Lucky Numbers Service (`services/lucky_numbers_service.py`)
+- Generates "statistically blessed" numbers for various scenarios
+- Provides mystical explanations and cosmic alignment percentages
+- Adjusts number ranges based on scenario context
+- Supports 10 different scenario types with specialized methodologies
+- Includes customizable parameters for count, range, and energy level
+- Tools: `generate_blessed_numbers`
+
 #### 4. Data Management (`data/`)
 
 ##### Sentence Pool (`data/mindful_sentences.py`)
@@ -110,6 +120,11 @@ class BaseService:
 ##### Fortune Generator (`data/fortune_generator.py`)
 - Phrase generation templates
 - Surreal content creation logic
+
+##### Lucky Numbers Generator (`data/lucky_numbers_generator.py`)
+- Scenario-specific number generation logic
+- Mystical methodology explanations
+- Cosmic alignment calculation
 
 #### 5. Utilities (`utils/`)
 
