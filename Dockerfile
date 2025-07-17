@@ -15,5 +15,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy your actual project files into the container
 COPY . .
 
-# Set default command to run your app (e.g., using Python)
-CMD ["python", "multi_service_server.py"]
+# Set default command to run your app using the start_platform.py script
+CMD ["python", "start_platform.py"]

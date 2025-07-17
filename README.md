@@ -77,8 +77,10 @@ There are two ways to set up the environment: using `venv` or `uv`.
 Start the multi-service platform with:
 
 ```bash
-python multi_service_server.py
+python start_platform.py
 ```
+
+This will display detailed information about available services and endpoints before starting the server.
 
 This starts an HTTP server on `http://localhost:8003` with the following endpoints:
 
