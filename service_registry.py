@@ -120,6 +120,7 @@ class ServiceRegistry:
             {"module": "services.fortune_service", "class": "FortuneService"},
             {"module": "services.timestamp_service", "class": "TimestampService"},
             {"module": "services.weather_service", "class": "WeatherService"},
+            {"module": "services.lucky_numbers_service", "class": "LuckyNumbersService"},
         ]
         
         for service_config in service_modules:
