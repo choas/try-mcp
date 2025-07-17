@@ -54,3 +54,5 @@ coverage.xml
 
 # Project specific
 *.log
+upload.sh
+*.tar
