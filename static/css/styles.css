@@ -237,4 +237,115 @@ footer {
   .github-ribbon img {
     width: 100px;
   }
+}/* S
+ervice Details Styles */
+.service-details {
+  margin-top: 3rem;
+  padding: 2rem;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.service-details-card {
+  position: relative;
+}
+
+.service-details-card h3 {
+  color: var(--secondary-color);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.service-status {
+  margin-bottom: 1.5rem;
+}
+
+.status-active {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.status-inactive {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.service-tools-detail {
+  margin-bottom: 1.5rem;
+}
+
+.tools-detail-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.tool-detail-item {
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background-color: var(--light-bg);
+  border-radius: var(--border-radius);
+}
+
+.tool-name {
+  font-weight: bold;
+  font-family: monospace;
+  margin-bottom: 0.25rem;
+}
+
+.tool-description {
+  font-size: 0.9rem;
+}
+
+.service-versions {
+  margin-bottom: 1.5rem;
+}
+
+.versions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style-type: none;
+  padding: 0;
+}
+
+.version-item {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+}
+
+.close-details-btn {
+  display: block;
+  margin: 1rem auto;
+  padding: 0.5rem 1rem;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.close-details-btn:hover {
+  background-color: var(--primary-color);
+}
+
+.details-btn {
+  display: block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.details-btn:hover {
+  background-color: var(--secondary-color);
 }

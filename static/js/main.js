@@ -11,23 +11,59 @@ document.addEventListener('DOMContentLoaded', function() {
 // Fetch services from the API
 async function fetchServices() {
   try {
-    const response = await fetch('/services');
-    const data = await response.json();
+    console.log('Fetching services from /services endpoint...');
     
-    if (data && data.services) {
-      renderServices(data.services);
-    } else {
-      showError('Failed to load services data');
-    }
+    // Use XMLHttpRequest for better compatibility
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/services', true);
+    
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        console.log('Response received:', xhr.responseText);
+        
+        try {
+          const data = JSON.parse(xhr.responseText);
+          console.log('Parsed data:', data);
+          
+          if (data && data.services) {
+            console.log(`Found ${data.services.length} services`);
+            renderServices(data.services);
+          } else {
+            console.error('No services found in the response:', data);
+            showError('Failed to load services data. Check the console for details.');
+          }
+        } catch (parseError) {
+          console.error('Error parsing JSON:', parseError);
+          showError('Failed to parse service data');
+        }
+      } else {
+        console.error('Request failed with status:', xhr.status);
+        showError(`Failed to load services: HTTP ${xhr.status}`);
+      }
+    };
+    
+    xhr.onerror = function() {
+      console.error('Network error occurred');
+      showError('Network error while fetching services');
+    };
+    
+    xhr.send();
   } catch (error) {
     console.error('Error fetching services:', error);
-    showError('Failed to connect to the API');
+    showError(`Failed to connect to the API: ${error.message}`);
   }
 }
 
 // Render services in the service list
 function renderServices(services) {
+  console.log('Rendering services:', services);
   const serviceList = document.getElementById('service-list');
+  
+  if (!serviceList) {
+    console.error('Service list element not found!');
+    return;
+  }
+  
   serviceList.innerHTML = '';
   
   if (services.length === 0) {
@@ -36,10 +72,15 @@ function renderServices(services) {
   }
   
   services.forEach(service => {
+    console.log('Rendering service:', service.name);
     const serviceCard = document.createElement('div');
     serviceCard.className = 'service-card';
     
-    const toolsList = service.tools.map(tool => 
+    // Check if tools array exists
+    const tools = service.tools || [];
+    console.log(`Service ${service.name} has ${tools.length} tools`);
+    
+    const toolsList = tools.map(tool => 
       `<li class="tool-item">${tool.name}</li>`
     ).join('');
     
@@ -62,64 +103,95 @@ function renderServices(services) {
     
     serviceList.appendChild(serviceCard);
   });
+  
+  console.log('Services rendering complete');
 }
 
 // Fetch detailed information about a specific service
 async function fetchServiceDetails(serviceName) {
   try {
-    const response = await fetch(`/services/${serviceName}`);
-    const data = await response.json();
+    console.log(`Fetching details for service: ${serviceName}`);
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `/services/${serviceName}`, true);
     
-    // Show service details in a modal or expandable section
-    showServiceDetails(data);
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        console.log(`Service details received for ${serviceName}:`, xhr.responseText);
+        
+        try {
+          const data = JSON.parse(xhr.responseText);
+          showServiceDetails(data);
+        } catch (parseError) {
+          console.error('Error parsing service details JSON:', parseError);
+          showError(`Failed to parse details for ${serviceName}`);
+        }
+      } else {
+        console.error(`Request failed for ${serviceName} with status:`, xhr.status);
+        showError(`Failed to load details for ${serviceName}: HTTP ${xhr.status}`);
+      }
+    };
+    
+    xhr.onerror = function() {
+      console.error(`Network error occurred while fetching details for ${serviceName}`);
+      showError(`Network error while fetching details for ${serviceName}`);
+    };
+    
+    xhr.send();
   } catch (error) {
     console.error(`Error fetching details for ${serviceName}:`, error);
-    showError(`Failed to load details for ${serviceName}`);
+    showError(`Failed to load details for ${serviceName}: ${error.message}`);
   }
 }
 
-// Show service details in a modal
+// Show service details at the bottom of the page
 function showServiceDetails(service) {
-  // Create modal content
-  const modalContent = `
-    <h3>${service.name} Service (${service.version})</h3>
-    <p>${service.description}</p>
-    <h4>Status: <span class="status-${service.status}">${service.status}</span></h4>
-    
-    <h4>Available Tools:</h4>
-    <ul>
-      ${service.tools.map(tool => `
-        <li>
-          <strong>${tool.name}</strong>: ${tool.description}
-        </li>
-      `).join('')}
-    </ul>
-    
-    <h4>Available Versions:</h4>
-    <ul>
-      ${service.available_versions.map(v => `<li>${v}</li>`).join('')}
-    </ul>
+  console.log('Showing service details:', service);
+  
+  // Create details content
+  const detailsContent = `
+    <div class="service-details-card">
+      <h3>${service.name} Service (${service.version})</h3>
+      <p>${service.description}</p>
+      <div class="service-status">
+        <h4>Status: <span class="status-${service.status}">${service.status}</span></h4>
+      </div>
+      
+      <div class="service-tools-detail">
+        <h4>Available Tools:</h4>
+        <ul class="tools-detail-list">
+          ${service.tools.map(tool => `
+            <li class="tool-detail-item">
+              <div class="tool-name">${tool.name}</div>
+              <div class="tool-description">${tool.description || 'No description available'}</div>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+      
+      <div class="service-versions">
+        <h4>Available Versions:</h4>
+        <ul class="versions-list">
+          ${service.available_versions.map(v => `<li class="version-item">${v}</li>`).join('')}
+        </ul>
+      </div>
+      
+      <button class="close-details-btn" onclick="hideServiceDetails()">Close Details</button>
+    </div>
   `;
   
-  // Show modal with the content
-  const modal = document.getElementById('service-modal');
-  const modalBody = document.getElementById('service-modal-content');
+  // Show details at the bottom of the page
+  const detailsSection = document.getElementById('service-details');
+  detailsSection.innerHTML = detailsContent;
+  detailsSection.style.display = 'block';
   
-  modalBody.innerHTML = modalContent;
-  modal.style.display = 'block';
-  
-  // Close modal when clicking the close button
-  const closeBtn = document.getElementsByClassName('close-modal')[0];
-  closeBtn.onclick = function() {
-    modal.style.display = 'none';
-  };
-  
-  // Close modal when clicking outside of it
-  window.onclick = function(event) {
-    if (event.target == modal) {
-      modal.style.display = 'none';
-    }
-  };
+  // Scroll to the details section
+  detailsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Hide service details
+function hideServiceDetails() {
+  const detailsSection = document.getElementById('service-details');
+  detailsSection.style.display = 'none';
 }
 
 // Set up code tabs
