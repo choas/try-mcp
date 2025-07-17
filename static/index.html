@@ -72,6 +72,7 @@
         <button class="code-tab active" data-target="curl-example">cURL</button>
         <button class="code-tab" data-target="python-example">Python</button>
         <button class="code-tab" data-target="js-example">JavaScript</button>
+        <button class="code-tab" data-target="claude-example">Claude Desktop</button>
       </div>
       
       <div class="code-examples">
@@ -221,6 +222,59 @@ async function example() {
 }
 
 example();
+          </code></pre>
+        </div>
+        
+        <div id="claude-example" class="code-example">
+          <pre><code>
+{
+  "mcpServers": {
+    "try-mcp-weather": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://try-mcp.dev/services/weather/v1"],
+      "disabled": false,
+      "autoApprove": ["get_weather_forecast"]
+    },
+    "try-mcp-mindful": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://try-mcp.dev/services/mindful/v1"],
+      "disabled": false,
+      "autoApprove": ["get_mindful_sentence"]
+    },
+    "try-mcp-emoji": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://try-mcp.dev/services/emoji-oracle/v1"],
+      "disabled": false,
+      "autoApprove": ["get_emoji_oracle"]
+    },
+    "try-mcp-timestamp": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://try-mcp.dev/services/timestamp/v1"],
+      "disabled": false,
+      "autoApprove": ["generate_random_timestamp"]
+    },
+    "try-mcp-fortune": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://try-mcp.dev/services/fortune/v1"],
+      "disabled": false,
+      "autoApprove": ["get_fortune_cookie"]
+    }
+  }
+}
+
+// To use in Claude Desktop:
+// 1. Open Claude Desktop settings
+// 2. Navigate to the MCP section
+// 3. Add the above configuration
+// 4. Save and restart Claude Desktop
+// 5. Now you can use the services directly in your conversations
+
+// Example usage in Claude:
+// "What's the weather forecast for Berlin tomorrow?"
+// Claude will use the get_weather_forecast tool automatically
+
+// For more information about MCP configuration, visit:
+// https://docs.anthropic.com/claude/docs/mcp-configuration
           </code></pre>
         </div>
       </div>
