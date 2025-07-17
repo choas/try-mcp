@@ -523,6 +523,13 @@ async def get_service_info(service_name: str):
 @app.post("/services/{service_name}/enable")
 async def enable_service(service_name: str):
     """Enable a service."""
+    # Check if public service control is allowed
+    if not mcp_server.config.is_public_service_control_allowed():
+        raise HTTPException(
+            status_code=403, 
+            detail="Public service control is disabled. Set 'allow_public_service_control' to true in config.json to enable."
+        )
+    
     if mcp_server.enable_service(service_name):
         return {"status": "success", "message": f"Service '{service_name}' enabled"}
     else:
@@ -531,6 +538,13 @@ async def enable_service(service_name: str):
 @app.post("/services/{service_name}/disable")
 async def disable_service(service_name: str):
     """Disable a service."""
+    # Check if public service control is allowed
+    if not mcp_server.config.is_public_service_control_allowed():
+        raise HTTPException(
+            status_code=403, 
+            detail="Public service control is disabled. Set 'allow_public_service_control' to true in config.json to enable."
+        )
+    
     if mcp_server.disable_service(service_name):
         return {"status": "success", "message": f"Service '{service_name}' disabled"}
     else:

@@ -21,7 +21,8 @@ class ConfigManager:
             "host": "0.0.0.0",
             "port": 8003,
             "debug": False,
-            "log_level": "info"
+            "log_level": "info",
+            "allow_public_service_control": False  # Default to false for security
         },
         "services": {
             # Default all services to enabled
@@ -163,6 +164,14 @@ class ConfigManager:
             List of disabled service names.
         """
         return [service for service in available_services if not self.is_service_enabled(service)]
+    
+    def is_public_service_control_allowed(self) -> bool:
+        """Check if public service control is allowed.
+        
+        Returns:
+            True if public service control is allowed, False otherwise.
+        """
+        return self.get('server', 'allow_public_service_control', False)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert the configuration to a dictionary.

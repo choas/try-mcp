@@ -3,7 +3,8 @@
         "host": "0.0.0.0",
         "port": 8003,
         "debug": false,
-        "log_level": "info"
+        "log_level": "info",
+        "allow_public_service_control": false
     },
     "services": {
         "enabled_services": ["*"],
