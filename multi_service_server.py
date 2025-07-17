@@ -6,6 +6,7 @@ import logging
 import time
 import sys
 import uuid
+import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, Request, HTTPException
@@ -17,10 +18,15 @@ import uvicorn
 from service_router import ServiceRouter
 from service_registry import ServiceRegistry
 from utils.error_formatter import ErrorFormatter, ErrorCode, ErrorHandler
+from utils.config_manager import ConfigManager
+
+# Load configuration
+config_file = os.getenv('MCP_CONFIG', 'config.json')
+config = ConfigManager(config_file)
 
 # Set up structured logging
-import os
-log_level = logging.DEBUG if os.getenv('DEBUG', '').lower() in ('true', '1', 'yes') else logging.INFO
+log_level_name = config.get('server', 'log_level', 'info').upper()
+log_level = getattr(logging, log_level_name, logging.INFO)
 
 logging.basicConfig(
     level=log_level,
@@ -48,21 +54,23 @@ app.add_middleware(
 )
 
 class MultiServiceMCPServer:
-    def __init__(self, service_registry: Optional[ServiceRegistry] = None):
+    def __init__(self, service_registry: Optional[ServiceRegistry] = None, config_manager: Optional[ConfigManager] = None):
         """Initialize the multi-service MCP server.
         
         Args:
             service_registry: Optional service registry. If None, will auto-discover services.
+            config_manager: Optional configuration manager. If None, will use the global config.
         """
         self.router = ServiceRouter()
         self.service_registry = service_registry or ServiceRegistry()
+        self.config = config_manager or config
         
         # Load services
         self._load_services()
         
         logger.info(f"Registered {self.router.get_service_count()} services")
         for service_info in self.router.list_services():
-            logger.info(f"  - {service_info.name} v{service_info.version}: {service_info.description}")
+            logger.info(f"  - {service_info.name} v{service_info.version}: {service_info.description} ({service_info.status})")
     
     def _load_services(self):
         """Load services using the service registry."""
@@ -78,10 +86,27 @@ class MultiServiceMCPServer:
             services = self.service_registry.auto_discover_services()
             logger.info(f"Auto-discovered {len(services)} services")
         
-        # Register all services with the router
+        # Register all services with the router, respecting enabled/disabled configuration
+        enabled_count = 0
+        disabled_count = 0
+        
         for service in services:
-            self.router.register_service(service)
-            logger.info(f"Loaded service: {service.name} v{service.version}")
+            # Check if the service is enabled in the configuration
+            if self.config.is_service_enabled(service.name):
+                # Set service status to active
+                service.set_status("active")
+                self.router.register_service(service)
+                logger.info(f"Loaded service: {service.name} v{service.version} (active)")
+                enabled_count += 1
+            else:
+                # Set service status to inactive
+                service.set_status("inactive")
+                # Still register it with the router, but it will be marked as inactive
+                self.router.register_service(service)
+                logger.info(f"Service disabled by configuration: {service.name} v{service.version} (inactive)")
+                disabled_count += 1
+        
+        logger.info(f"Services loaded: {enabled_count} active, {disabled_count} inactive")
     
     def add_service(self, service):
         """Add a service to the server.
@@ -89,8 +114,68 @@ class MultiServiceMCPServer:
         Args:
             service: Service instance to add
         """
-        self.router.register_service(service)
-        logger.info(f"Added service: {service.name} v{service.version}")
+        # Check if the service is enabled in the configuration
+        if self.config.is_service_enabled(service.name):
+            # Set service status to active
+            service.set_status("active")
+            self.router.register_service(service)
+            logger.info(f"Added service: {service.name} v{service.version} (active)")
+        else:
+            # Set service status to inactive
+            service.set_status("inactive")
+            # Still register it with the router, but it will be marked as inactive
+            self.router.register_service(service)
+            logger.info(f"Added service (disabled by configuration): {service.name} v{service.version} (inactive)")
+    
+    def enable_service(self, service_name: str) -> bool:
+        """Enable a service.
+        
+        Args:
+            service_name: Name of the service to enable
+            
+        Returns:
+            True if the service was enabled, False otherwise
+        """
+        # Get all versions of the service
+        versions = self.router.get_service_versions(service_name)
+        if not versions:
+            logger.warning(f"Cannot enable service {service_name}: service not found")
+            return False
+        
+        success = False
+        for version in versions:
+            service = self.router.get_service(service_name, version)
+            if service:
+                service.set_status("active")
+                logger.info(f"Enabled service: {service_name} v{version}")
+                success = True
+        
+        return success
+    
+    def disable_service(self, service_name: str) -> bool:
+        """Disable a service.
+        
+        Args:
+            service_name: Name of the service to disable
+            
+        Returns:
+            True if the service was disabled, False otherwise
+        """
+        # Get all versions of the service
+        versions = self.router.get_service_versions(service_name)
+        if not versions:
+            logger.warning(f"Cannot disable service {service_name}: service not found")
+            return False
+        
+        success = False
+        for version in versions:
+            service = self.router.get_service(service_name, version)
+            if service:
+                service.set_status("inactive")
+                logger.info(f"Disabled service: {service_name} v{version}")
+                success = True
+        
+        return success
 
     async def handle_mcp_request(self, request: Dict[str, Any], request_uuid: str = None) -> Dict[str, Any]:
         """Handle incoming MCP requests."""
@@ -434,6 +519,22 @@ async def get_service_info(service_name: str):
         "tools": service_info.tools,
         "available_versions": versions
     }
+
+@app.post("/services/{service_name}/enable")
+async def enable_service(service_name: str):
+    """Enable a service."""
+    if mcp_server.enable_service(service_name):
+        return {"status": "success", "message": f"Service '{service_name}' enabled"}
+    else:
+        raise HTTPException(status_code=404, detail=f"Service '{service_name}' not found")
+
+@app.post("/services/{service_name}/disable")
+async def disable_service(service_name: str):
+    """Disable a service."""
+    if mcp_server.disable_service(service_name):
+        return {"status": "success", "message": f"Service '{service_name}' disabled"}
+    else:
+        raise HTTPException(status_code=404, detail=f"Service '{service_name}' not found")
 
 @app.post("/services/{service_name}/v{version}")
 async def handle_service_mcp(service_name: str, version: str, request: Request):
