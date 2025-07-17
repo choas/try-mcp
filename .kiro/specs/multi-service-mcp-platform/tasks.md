@@ -91,3 +91,12 @@
   - Create formatted responses with emojis and encouraging language
   - Write unit tests for different scenarios and parameter combinations
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
+
+- [x] 14. Create landing page for the platform
+  - Design and implement a responsive landing page for try-mcp.dev
+  - Create dynamic service listing that fetches data from the `/services` endpoint
+  - Add expandable sections for each service showing available tools and capabilities
+  - Include "Fork me on GitHub" banner linking to github.com/choas/try-mcp.dev
+  - Add usage examples with code snippets for curl, Python, and JavaScript
+  - Implement FastAPI endpoint to serve the static landing page
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_

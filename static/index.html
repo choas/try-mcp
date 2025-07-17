@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Service MCP Platform | try-mcp.dev</title>
+  <meta name="description" content="A comprehensive multi-service MCP platform providing various utility services through a unified HTTP-based API structure.">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <!-- GitHub Ribbon -->
+  <a href="https://github.com/choas/try-mcp.dev" class="github-ribbon" target="_blank" rel="noopener noreferrer">
+    <img width="149" height="149" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_red_aa0000.png?resize=149%2C149" alt="Fork me on GitHub">
+  </a>
+  
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <div class="logo">try-<span>mcp</span>.dev</div>
+        <nav>
+          <a href="#services">Services</a>
+          <a href="#examples">Examples</a>
+          <a href="https://github.com/choas/try-mcp.dev" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Introduction -->
+  <section class="intro">
+    <div class="container">
+      <h1>Multi-Service MCP Platform</h1>
+      <p>
+        A comprehensive platform that provides various utility services through a unified HTTP-based API structure.
+        Access multiple MCP services through a consistent URL pattern and integrate them into your applications.
+      </p>
+    </div>
+  </section>
+  
+  <!-- Services -->
+  <section id="services" class="services">
+    <div class="container">
+      <h2>Available Services</h2>
+      <div id="service-list" class="service-list">
+        <div class="loading">Loading services...</div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Usage Examples -->
+  <section id="examples" class="examples">
+    <div class="container">
+      <h2>Usage Examples</h2>
+      
+      <div class="code-tabs">
+        <button class="code-tab active" data-target="curl-example">cURL</button>
+        <button class="code-tab" data-target="python-example">Python</button>
+        <button class="code-tab" data-target="js-example">JavaScript</button>
+      </div>
+      
+      <div class="code-examples">
+        <div id="curl-example" class="code-example active">
+          <pre><code>
+# List all available services
+curl -X GET "https://try-mcp.dev/services"
+
+# Get information about a specific service
+curl -X GET "https://try-mcp.dev/services/weather"
+
+# Call a service method directly
+curl -X POST "https://try-mcp.dev/services/weather/v1/get_weather_forecast" \
+  -H "Content-Type: application/json" \
+  -d '{"location": "Berlin"}'
+
+# Make an MCP request
+curl -X POST "https://try-mcp.dev/mcp" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "tools/call",
+    "params": {
+      "name": "weather_get_weather_forecast",
+      "arguments": {
+        "location": "Berlin"
+      }
+    }
+  }'
+          </code></pre>
+        </div>
+        
+        <div id="python-example" class="code-example">
+          <pre><code>
+import requests
+import json
+
+# Base URL for the API
+base_url = "https://try-mcp.dev"
+
+# List all available services
+response = requests.get(f"{base_url}/services")
+services = response.json()
+print(f"Available services: {services['total_services']}")
+
+# Get information about a specific service
+service_name = "weather"
+response = requests.get(f"{base_url}/services/{service_name}")
+service_info = response.json()
+print(f"Service: {service_info['name']} {service_info['version']}")
+
+# Call a service method directly
+response = requests.post(
+    f"{base_url}/services/weather/v1/get_weather_forecast",
+    json={"location": "Berlin"}
+)
+result = response.json()
+print(result)
+
+# Make an MCP request
+mcp_request = {
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "tools/call",
+    "params": {
+        "name": "weather_get_weather_forecast",
+        "arguments": {
+            "location": "Berlin"
+        }
+    }
+}
+
+response = requests.post(f"{base_url}/mcp", json=mcp_request)
+result = response.json()
+print(result["result"]["content"][0]["text"])
+          </code></pre>
+        </div>
+        
+        <div id="js-example" class="code-example">
+          <pre><code>
+// Base URL for the API
+const baseUrl = "https://try-mcp.dev";
+
+// List all available services
+async function listServices() {
+  const response = await fetch(`${baseUrl}/services`);
+  const data = await response.json();
+  console.log(`Available services: ${data.total_services}`);
+  return data.services;
+}
+
+// Get information about a specific service
+async function getServiceInfo(serviceName) {
+  const response = await fetch(`${baseUrl}/services/${serviceName}`);
+  const data = await response.json();
+  console.log(`Service: ${data.name} ${data.version}`);
+  return data;
+}
+
+// Call a service method directly
+async function callServiceMethod(serviceName, version, method, params) {
+  const response = await fetch(
+    `${baseUrl}/services/${serviceName}/${version}/${method}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(params)
+    }
+  );
+  return await response.json();
+}
+
+// Make an MCP request
+async function makeMcpRequest(method, params) {
+  const mcpRequest = {
+    jsonrpc: "2.0",
+    id: "1",
+    method: method,
+    params: params
+  };
+  
+  const response = await fetch(`${baseUrl}/mcp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(mcpRequest)
+  });
+  
+  return await response.json();
+}
+
+// Example usage
+async function example() {
+  // Get weather forecast
+  const result = await makeMcpRequest("tools/call", {
+    name: "weather_get_weather_forecast",
+    arguments: {
+      location: "Berlin"
+    }
+  });
+  
+  console.log(result.result.content[0].text);
+}
+
+example();
+          </code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 Multi-Service MCP Platform. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="https://github.com/choas/try-mcp.dev" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/choas/try-mcp.dev/issues" target="_blank" rel="noopener noreferrer">Report Issues</a>
+        <a href="https://github.com/choas/try-mcp.dev/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a>
+      </div>
+    </div>
+  </footer>
+  
+  <!-- Service Details Modal -->
+  <div id="service-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <div id="service-modal-content"></div>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

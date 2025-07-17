@@ -9,8 +9,9 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from service_router import ServiceRouter
@@ -534,9 +535,19 @@ async def call_service_method(service_name: str, version: str, method: str, requ
         
         raise HTTPException(status_code=400, detail=response.error)
 
-@app.get("/")
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Root endpoint with service information."""
+    """Serve the landing page."""
+    with open("static/index.html", "r") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
+
+@app.get("/api")
+async def api_info():
+    """API information endpoint."""
     services = mcp_server.router.list_services()
     return {
         "service": "Multi-Service MCP Platform",

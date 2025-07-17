@@ -298,12 +298,38 @@ services:
 - `MCP_CACHE_TTL`: Cache time-to-live
 - `MCP_MAX_REQUESTS`: Request limits
 
+## Landing Page
+
+### Overview
+The platform will include a user-friendly landing page at try-mcp.dev that serves as both documentation and a showcase for the available services.
+
+### Landing Page Components
+- **Header**: Platform name, logo, and "Fork me on GitHub" banner linking to github.com/choas/try-mcp.dev
+- **Introduction**: Brief explanation of the multi-service MCP platform and its purpose
+- **Services List**: Dynamic list of all available services with descriptions, fetched from the `/services` endpoint
+- **Service Details**: Expandable sections for each service showing available tools and capabilities
+- **Usage Examples**: Code snippets showing how to use the services with curl, Python, and JavaScript
+- **API Documentation**: Links to detailed API documentation for each service
+- **Footer**: Copyright information, links to related resources
+
+### Technology Stack
+- HTML5, CSS3, and JavaScript for the frontend
+- Bootstrap or similar framework for responsive design
+- Fetch API for retrieving service information dynamically
+- Syntax highlighting for code examples
+
+### Interaction with Backend
+- The landing page will make API calls to the `/services` endpoint to get the list of available services
+- For each service, it will call `/services/{service_name}` to get detailed information
+- All API calls will be made client-side using JavaScript
+
 ## Deployment Considerations
 
 ### Packaging
 - Maintain existing MCP server entry point
 - Add new multi-service entry point
 - Backward compatibility with existing installations
+- Include static files for the landing page
 
 ### Dependencies
 - Minimal additional dependencies
@@ -314,3 +340,8 @@ services:
 - Existing MVG functionality remains unchanged
 - New services added incrementally
 - Configuration-driven service enablement
+
+### Hosting
+- Main API on port 8003
+- Static landing page served by the same FastAPI application
+- Domain configuration for try-mcp.dev
