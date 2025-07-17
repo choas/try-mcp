@@ -83,9 +83,3 @@
   - Add performance tests for concurrent request handling
   - Update project documentation with new service descriptions and usage examples
   - _Requirements: 1.3, 7.1, 7.2_
-
-- [ ] 13. Replace "mvg-mcp-http" references with "try-mcp-dev"
-  - Search and replace all occurrences of "mvg-mcp-http" with "try-mcp-dev" across the codebase
-  - Update package names, server names, and documentation references
-  - Verify all configuration files and scripts use the new naming convention
-  - Test that the renamed service still functions correctly after changes
