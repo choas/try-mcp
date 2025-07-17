@@ -7,8 +7,10 @@ This script tests the platform functionality without starting the HTTP server.
 
 import asyncio
 import json
+import pytest
 from multi_service_server import MultiServiceMCPServer
 
+@pytest.mark.asyncio
 async def test_platform():
     """Test the multi-service platform functionality."""
     print("🧪 Testing Multi-Service MCP Platform...")

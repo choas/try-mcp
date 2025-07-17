@@ -2,8 +2,10 @@
 
 import asyncio
 import json
+import pytest
 import aiohttp
 
+@pytest.mark.asyncio
 async def test_service_endpoint():
     print('=== Testing Service-Specific Endpoint ===')
     

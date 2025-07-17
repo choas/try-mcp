@@ -7,8 +7,10 @@ This script tests that each service has its own dedicated MCP endpoint.
 
 import asyncio
 import json
+import pytest
 from multi_service_server import MultiServiceMCPServer, handle_individual_service_mcp
 
+@pytest.mark.asyncio
 async def test_individual_mcp_endpoints():
     """Test individual MCP endpoints for each service."""
     print("🧪 Testing Individual MCP Service Endpoints...")

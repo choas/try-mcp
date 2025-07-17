@@ -4,6 +4,7 @@ import asyncio
 import json
 import sys
 import logging
+import pytest
 from typing import Dict, Any
 
 import aiohttp
@@ -46,6 +47,7 @@ async def send_mcp_request(url: str, method: str, params: Dict[str, Any] = None,
         logger.error(f"Request error: {e}")
         return None
 
+@pytest.mark.asyncio
 async def test_mcp_server():
     """Test the MCP server with various requests."""
     server_url = "http://localhost:8003/mcp"
