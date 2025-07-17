@@ -28,6 +28,9 @@ async function fetchServices() {
           if (data && data.services) {
             console.log(`Found ${data.services.length} services`);
             renderServices(data.services);
+            
+            // Generate Claude Desktop configuration
+            generateClaudeDesktopConfig(data.services);
           } else {
             console.error('No services found in the response:', data);
             showError('Failed to load services data. Check the console for details.');
@@ -217,4 +220,74 @@ function setupCodeTabs() {
 function showError(message) {
   const serviceList = document.getElementById('service-list');
   serviceList.innerHTML = `<div class="error-message">${message}</div>`;
+}
+
+// Generate Claude Desktop configuration based on available services
+function generateClaudeDesktopConfig(services) {
+  console.log('Generating Claude Desktop configuration for', services.length, 'services');
+  
+  // Get the Claude example element
+  const claudeExample = document.getElementById('claude-example');
+  if (!claudeExample) {
+    console.error('Claude example element not found');
+    return;
+  }
+  
+  // Create the configuration object
+  const mcpServers = {};
+  
+  // Add each service to the configuration
+  services.forEach(service => {
+    // Create a server name based on the service name
+    const serverName = `try-mcp-${service.name}`;
+    
+    // Get the first tool from each service for autoApprove
+    const autoApproveTools = service.tools.map(tool => tool.name);
+    
+    // Add the service to the configuration
+    mcpServers[serverName] = {
+      "command": "npx",
+      "args": [`mcp-remote`, `http://try-mcp.dev/services/${service.name}/${service.version}`],
+      "disabled": false,
+      "autoApprove": autoApproveTools
+    };
+  });
+  
+  // Create the configuration JSON
+  const config = {
+    mcpServers: mcpServers
+  };
+  
+  // Format the configuration as a string with proper indentation
+  const configStr = JSON.stringify(config, null, 2);
+  
+  // Create the complete example content
+  const exampleContent = `
+{
+${configStr.substring(1, configStr.length - 1)}
+}
+
+// To use in Claude Desktop:
+// 1. Open Claude Desktop settings
+// 2. Navigate to the MCP section
+// 3. Add the above configuration
+// 4. Save and restart Claude Desktop
+// 5. Now you can use the services directly in your conversations
+
+// Example usage in Claude:
+// "What's the weather forecast for Berlin tomorrow?"
+// Claude will use the get_weather_forecast tool automatically
+
+// For more information about MCP configuration, visit:
+// https://docs.anthropic.com/claude/docs/mcp-configuration
+`;
+
+  // Update the Claude example content
+  const codeElement = claudeExample.querySelector('code');
+  if (codeElement) {
+    codeElement.textContent = exampleContent;
+    console.log('Claude Desktop configuration updated');
+  } else {
+    console.error('Code element not found in Claude example');
+  }
 }
