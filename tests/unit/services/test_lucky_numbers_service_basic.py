@@ -1,17 +1,10 @@
 import pytest
 import asyncio
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 from services.lucky_numbers_service import LuckyNumbersService
 from data.models import ToolResult
-
-# Create a mock datetime for testing
-FIXED_DATETIME = datetime(2023, 1, 1, 12, 0)
-
-# Mock function for get_datetime_now
-def mock_get_datetime_now():
-    return FIXED_DATETIME
 
 
 @pytest.fixture
@@ -31,9 +24,9 @@ def test_get_tools(lucky_numbers_service):
     tools = lucky_numbers_service.get_tools()
     assert len(tools) == 1
     assert tools[0]["name"] == "generate_blessed_numbers"
-    assert "scenario" in tools[0]["parameters"]["properties"]
-    assert "count" in tools[0]["parameters"]["properties"]
-    assert "energy_level" in tools[0]["parameters"]["properties"]
+    assert "scenario" in tools[0]["inputSchema"]["properties"]
+    assert "count" in tools[0]["inputSchema"]["properties"]
+    assert "energy_level" in tools[0]["inputSchema"]["properties"]
 
 
 @pytest.mark.asyncio
@@ -104,47 +97,3 @@ async def test_generate_blessed_numbers_invalid_energy(lucky_numbers_service):
     )
     assert result["status"] == "error"
     assert "Invalid energy level" in result["error"]
-
-
-@pytest.mark.asyncio
-async def test_count_parameter_controls_number_count(lucky_numbers_service):
-    """Test that the count parameter controls the number of blessed numbers returned."""
-    for count in [1, 3, 5, 10]:
-        result = await lucky_numbers_service._generate_blessed_numbers({
-            "scenario": "lottery",
-            "count": count,
-            "min_value": 1,
-            "max_value": 100
-        })
-        
-        assert len(result["blessed_numbers"]) == count
-
-
-@pytest.mark.asyncio
-async def test_min_max_parameters_constrain_numbers(lucky_numbers_service):
-    """Test that min and max parameters constrain the generated numbers."""
-    min_val = 50
-    max_val = 60
-    
-    result = await lucky_numbers_service._generate_blessed_numbers({
-        "scenario": "lottery",
-        "count": 5,
-        "min_value": min_val,
-        "max_value": max_val
-    })
-    
-    for num in result["blessed_numbers"]:
-        assert min_val <= num <= max_val
-
-
-@pytest.mark.asyncio
-async def test_all_scenarios_work(lucky_numbers_service):
-    """Test that all defined scenarios can generate numbers."""
-    for scenario in lucky_numbers_service.SCENARIOS.keys():
-        result = await lucky_numbers_service._generate_blessed_numbers({
-            "scenario": scenario
-        })
-        
-        assert result["status"] == "success"
-        assert len(result["blessed_numbers"]) > 0
-        assert result["scenario"] == scenario

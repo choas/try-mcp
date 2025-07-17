@@ -31,9 +31,9 @@ def test_get_tools(lucky_numbers_service):
     tools = lucky_numbers_service.get_tools()
     assert len(tools) == 1
     assert tools[0]["name"] == "generate_blessed_numbers"
-    assert "scenario" in tools[0]["parameters"]["properties"]
-    assert "count" in tools[0]["parameters"]["properties"]
-    assert "energy_level" in tools[0]["parameters"]["properties"]
+    assert "scenario" in tools[0]["inputSchema"]["properties"]
+    assert "count" in tools[0]["inputSchema"]["properties"]
+    assert "energy_level" in tools[0]["inputSchema"]["properties"]
 
 
 @pytest.mark.asyncio
