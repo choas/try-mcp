@@ -199,7 +199,7 @@ class LuckyNumbersService(BaseService):
             {
                 "name": "generate_blessed_numbers",
                 "description": "Generates mystically optimized numbers for various life scenarios",
-                "parameters": {
+                "inputSchema": {
                     "type": "object",
                     "properties": {
                         "scenario": {
