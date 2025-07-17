@@ -247,7 +247,7 @@ function generateClaudeDesktopConfig(services) {
     // Add the service to the configuration
     mcpServers[serverName] = {
       "command": "npx",
-      "args": [`mcp-remote`, `http://try-mcp.dev/services/${service.name}/${service.version}`],
+      "args": [`mcp-remote`, `https://try-mcp.dev/services/${service.name}/${service.version}`],
       "disabled": false,
       "autoApprove": autoApproveTools
     };
