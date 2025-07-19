@@ -52,14 +52,16 @@ Transform the existing MVG MCP server into a comprehensive multi-service platfor
 
 ### Requirement 5
 
-**User Story:** As a developer needing random temporal data, I want to generate random timestamps within specified ranges, so that I can use realistic time data for testing or simulation purposes.
+**User Story:** As a developer needing random temporal data, I want to generate random timestamps within specified ranges or day periods, so that I can use realistic time data for testing or simulation purposes.
 
 #### Acceptance Criteria
 
 1. WHEN the timestamp service is called with start and end parameters THEN the system SHALL return a random timestamp within that range
 2. WHEN start time is after end time THEN the system SHALL swap the values
-3. WHEN no range is specified THEN the system SHALL use a default range of the next day between 10:00 and 16:00
+3. WHEN no range is specified THEN the system SHALL use a default range of the next day during daylight hours
 4. WHEN the timestamp is generated THEN the system SHALL return it in ISO 8601 format
+5. WHEN the timestamp service is called with a day_period parameter THEN the system SHALL return a timestamp within that period of the day
+6. WHEN no day_period is specified THEN the system SHALL default to "day" period (daylight hours)
 
 ### Requirement 6
 

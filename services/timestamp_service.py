@@ -26,17 +26,28 @@ class TimestampService(BaseService):
         self._tool_definitions = [
             {
                 "name": "generate_random_timestamp",
-                "description": "Generate a random timestamp within a specified start and end range",
+                "description": "Generate a random timestamp within a specified start and end range or day period",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "start_time": {
                             "type": "string",
-                            "description": "Start time in ISO 8601 format (YYYY-MM-DDTHH:MM:SS). Defaults to tomorrow at 10:00 if not provided."
+                            "description": "Start time in ISO 8601 format (YYYY-MM-DDTHH:MM:SS). Defaults based on day_period if not provided."
                         },
                         "end_time": {
                             "type": "string",
-                            "description": "End time in ISO 8601 format (YYYY-MM-DDTHH:MM:SS). Defaults to tomorrow at 16:00 if not provided."
+                            "description": "End time in ISO 8601 format (YYYY-MM-DDTHH:MM:SS). Defaults based on day_period if not provided."
+                        },
+                        "day_period": {
+                            "type": "string",
+                            "description": "Period of the day for the timestamp (morning, day, evening, night). Defaults to 'day' if not provided.",
+                            "enum": ["morning", "day", "evening", "night"]
+                        },
+                        "day_offset": {
+                            "type": "integer",
+                            "description": "Number of days from today (0=today, 1=tomorrow, etc.). Defaults to 1 if not provided.",
+                            "minimum": 0,
+                            "maximum": 365
                         }
                     },
                     "required": []
@@ -76,7 +87,7 @@ class TimestampService(BaseService):
         """Handle generate_random_timestamp requests.
         
         Args:
-            params: Request parameters including optional start_time and end_time
+            params: Request parameters including optional start_time, end_time, and day_period
             
         Returns:
             ToolResult with a random timestamp
@@ -84,29 +95,61 @@ class TimestampService(BaseService):
         # Parse parameters
         start_time_str = params.get("start_time")
         end_time_str = params.get("end_time")
+        day_period = params.get("day_period", "day")  # Default to "day" if not specified
+        day_offset = params.get("day_offset", 1)  # Default to tomorrow (1) if not specified
         
         try:
-            # Set default range if not provided (next day between 10:00 and 16:00)
+            # Set default range based on day_period if start/end times not provided
             now = datetime.now(timezone.utc)
-            tomorrow = now + timedelta(days=1)
+            target_day = now + timedelta(days=day_offset)
+            
+            # Define time ranges for different periods of the day
+            day_periods = {
+                "morning": (6, 12),  # 6:00 AM to 12:00 PM
+                "day": (10, 16),     # 10:00 AM to 4:00 PM
+                "evening": (16, 22), # 4:00 PM to 10:00 PM
+                "night": (22, 6)     # 10:00 PM to 6:00 AM (spans midnight)
+            }
             
             if start_time_str:
                 start_time = self._parse_timestamp(start_time_str)
             else:
-                # Default to tomorrow at 10:00
-                start_time = datetime(
-                    tomorrow.year, tomorrow.month, tomorrow.day, 
-                    10, 0, 0, tzinfo=timezone.utc
-                )
+                # Use day_period to determine default start time
+                start_hour, end_hour = day_periods.get(day_period, day_periods["day"])
+                
+                # Handle night period which spans midnight
+                if day_period == "night" and start_hour > end_hour:
+                    # For night period, start at 10 PM on target day
+                    start_time = datetime(
+                        target_day.year, target_day.month, target_day.day, 
+                        start_hour, 0, 0, tzinfo=timezone.utc
+                    )
+                else:
+                    # For other periods, start at the specified hour on target day
+                    start_time = datetime(
+                        target_day.year, target_day.month, target_day.day, 
+                        start_hour, 0, 0, tzinfo=timezone.utc
+                    )
             
             if end_time_str:
                 end_time = self._parse_timestamp(end_time_str)
             else:
-                # Default to tomorrow at 16:00
-                end_time = datetime(
-                    tomorrow.year, tomorrow.month, tomorrow.day, 
-                    16, 0, 0, tzinfo=timezone.utc
-                )
+                # Use day_period to determine default end time
+                start_hour, end_hour = day_periods.get(day_period, day_periods["day"])
+                
+                # Handle night period which spans midnight
+                if day_period == "night" and start_hour > end_hour:
+                    # For night period, end at 6 AM the day after target day
+                    end_time = datetime(
+                        target_day.year, target_day.month, target_day.day, 
+                        end_hour, 0, 0, tzinfo=timezone.utc
+                    ) + timedelta(days=1)
+                else:
+                    # For other periods, end at the specified hour on target day
+                    end_time = datetime(
+                        target_day.year, target_day.month, target_day.day, 
+                        end_hour, 0, 0, tzinfo=timezone.utc
+                    )
             
             # Ensure start_time is before end_time
             if start_time > end_time:
@@ -119,9 +162,29 @@ class TimestampService(BaseService):
             # Format response
             formatted_timestamp = random_timestamp.isoformat()
             
+            # Get the period name for display
+            period_display_names = {
+                "morning": "Morning (6:00 AM - 12:00 PM)",
+                "day": "Day (10:00 AM - 4:00 PM)",
+                "evening": "Evening (4:00 PM - 10:00 PM)",
+                "night": "Night (10:00 PM - 6:00 AM)"
+            }
+            period_display = period_display_names.get(day_period, "Custom Range")
+            
+            # Format day offset for display
+            if day_offset == 0:
+                day_display = "Today"
+            elif day_offset == 1:
+                day_display = "Tomorrow"
+            else:
+                target_date = target_day.strftime("%Y-%m-%d")
+                day_display = f"{day_offset} days from now ({target_date})"
+            
             result_text = (
                 f"🕒 Random Timestamp Generated 🕒\n\n"
                 f"ISO 8601: {formatted_timestamp}\n\n"
+                f"Day: {day_display}\n"
+                f"Period: {period_display}\n"
                 f"Range: {start_time.isoformat()} to {end_time.isoformat()}"
             )
             
