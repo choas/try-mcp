@@ -164,10 +164,10 @@ class TimestampService(BaseService):
             
             # Get the period name for display
             period_display_names = {
-                "morning": "Morning (6:00 AM - 12:00 PM)",
-                "day": "Day (10:00 AM - 4:00 PM)",
-                "evening": "Evening (4:00 PM - 10:00 PM)",
-                "night": "Night (10:00 PM - 6:00 AM)"
+                "morning": "Morning (06:00 - 12:00)",
+                "day": "Day (10:00 - 16:00)",
+                "evening": "Evening (16:00 - 22:00)",
+                "night": "Night (22:00 - 06:00)"
             }
             period_display = period_display_names.get(day_period, "Custom Range")
             
