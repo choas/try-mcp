@@ -1,0 +1,18 @@
+/* Fira Code Font */
+@font-face {
+  font-family: 'Fira Code';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Fira Code Regular'), local('FiraCode-Regular'),
+       url('FiraCode-Regular.woff2') format('woff2'),
+       url('FiraCode-Regular.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  font-style: normal;
+  font-weight: 500;
+  src: local('Fira Code Medium'), local('FiraCode-Medium'),
+       url('FiraCode-Medium.woff2') format('woff2'),
+       url('FiraCode-Medium.woff') format('woff');
+}
