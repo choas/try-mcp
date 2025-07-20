@@ -660,6 +660,21 @@ async def root():
         html_content = f.read()
     return HTMLResponse(content=html_content)
 
+@app.get("/robots.txt", response_class=FileResponse)
+async def robots():
+    """Serve robots.txt file."""
+    return FileResponse("static/robots.txt")
+
+@app.get("/sitemap.xml", response_class=FileResponse)
+async def sitemap():
+    """Serve sitemap.xml file."""
+    return FileResponse("static/sitemap.xml")
+
+@app.get("/favicon.ico", response_class=FileResponse)
+async def favicon():
+    """Serve favicon.ico file."""
+    return FileResponse("static/favicon/favicon.ico")
+
 @app.get("/api")
 async def api_info():
     """API information endpoint."""
