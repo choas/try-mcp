@@ -1,0 +1,7 @@
+User-agent: *
+Disallow:
+
+User-agent: Twitterbot
+Disallow: /
+
+Sitemap: https://try-mcp.dev/sitemap.xml
