@@ -516,6 +516,14 @@ python -m pytest tests/integration/test_mindful_service_integration.py
 - `tests/integration/`: Integration tests for service interactions
 - `tests/performance/`: Performance and concurrency tests
 
+### MCP Test with Inspector
+
+This command initiates a Model Context Protocol (MCP) test session using the Inspector tool to validate and debug contextual behavior.
+
+```shell
+npx @modelcontextprotocol/inspector
+```
+
 ## Docker Support
 
 The project includes a Dockerfile for containerization:
