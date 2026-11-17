@@ -7,6 +7,12 @@ Steps (all optional, run in this order):
   probe   send one `server/discover` request (protocol 2026-07-28) to each
           remote URL and store the result as the V2 flag
   inject  write tools/servers.json into static/index.html
+  verify  check every entry: registry status, docs link, remote URL, package.
+          Prints the problems and writes tools/verify_report.json. Changes nothing.
+
+Files next to this script: curated.json (groups and registry names),
+manual.json (entries that are not in the registry), titles.json (display
+names), overrides.json (corrections where the registry entry is out of date).
 
 Usage:
   python3 tools/build_catalog.py fetch probe inject
@@ -29,6 +35,7 @@ ROOT = HERE.parent
 CURATED = HERE / "curated.json"
 MANUAL = HERE / "manual.json"
 TITLES = HERE / "titles.json"
+OVERRIDES = HERE / "overrides.json"
 OUT = HERE / "servers.json"
 PAGE = ROOT / "static" / "index.html"
 REGISTRY = "https://registry.modelcontextprotocol.io/v0/servers/{}/versions/latest"
@@ -207,6 +214,10 @@ def fetch():
     with concurrent.futures.ThreadPoolExecutor(8) as ex:
         servers = [s for s in ex.map(one, todo) if s and s["options"]]
     servers = manual + servers
+    # hand-made corrections where the registry entry is out of date
+    overrides = json.loads(OVERRIDES.read_text()) if OVERRIDES.exists() else {}
+    for s in servers:
+        s.update(overrides.get(s["id"], {}))
     used = {}
     for s in servers:  # unique config names
         used[s["slug"]] = used.get(s["slug"], 0) + 1
@@ -297,6 +308,102 @@ def inject():
     print(f"inject: {len(data['servers'])} servers into {PAGE.relative_to(ROOT)}")
 
 
+# ---------- verify ----------
+
+def status_of(url, method="GET", data=None, headers=None, timeout=20):
+    """Return the HTTP status of a request, or the error name."""
+    h = {"User-Agent": "Mozilla/5.0 (compatible; " + UA + ")"}
+    h.update(headers or {})
+    req = urllib.request.Request(url, data=data, method=method, headers=h)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception as e:  # noqa: BLE001
+        reason = getattr(e, "reason", e)
+        return type(reason).__name__ if not isinstance(reason, str) else reason
+
+
+def package_of(option):
+    """(registry, name) of the package a local option runs, or None."""
+    args, skip = [], False
+    for a in option["args"]:
+        if skip or a.startswith("-"):
+            skip = a in ("-p", "--python", "--from", "--with")  # these flags take a value
+            continue
+        args.append(a)
+    if option["command"] == "npx" and args:
+        name = args[0]
+        return "npm", name if name.startswith("@") and name.count("@") == 1 else re.sub(r"(?<!^)@.*$", "", name)
+    if option["command"] == "uvx" and args:
+        return "pypi", re.split(r"[=<>@\[]", args[0])[0]
+    return None
+
+
+def verify_one(s):
+    problems, notes = [], []
+    if s.get("source") == "registry":
+        try:
+            data = http_json(REGISTRY.format(urllib.parse.quote(s["id"], safe="")))
+            status = (data.get("_meta", {}).get("io.modelcontextprotocol.registry/official", {})).get("status")
+            if status != "active":
+                problems.append(f"registry status is {status}")
+        except urllib.error.HTTPError as e:
+            problems.append(f"registry entry missing (HTTP {e.code})")
+        except Exception as e:  # noqa: BLE001
+            notes.append(f"registry not reachable ({type(e).__name__})")
+    if s.get("link", "").startswith("http"):
+        st = status_of(s["link"])
+        if st in (404, 410) or isinstance(st, str):
+            problems.append(f"docs link {s['link']} -> {st}")
+        elif st != 200:
+            notes.append(f"docs link -> {st}")
+    for o in s["options"]:
+        if o["kind"] == "stdio":
+            pkg = package_of(o)
+            if pkg:
+                url = ("https://registry.npmjs.org/" + pkg[1].replace("/", "%2F") if pkg[0] == "npm"
+                       else "https://pypi.org/pypi/" + pkg[1] + "/json")
+                st = status_of(url)
+                if st != 200:
+                    problems.append(f"{pkg[0]} package {pkg[1]} -> {st}")
+            continue
+        if "${" in o["url"]:
+            continue
+        body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2025-06-18", "capabilities": {},
+            "clientInfo": {"name": "mcp-catalog-builder", "version": "1.0"}}}).encode()
+        if o["kind"] == "sse":
+            st = status_of(o["url"], headers={"Accept": "text/event-stream"}, timeout=8)
+            ok = st in (200, 401, 403) or st in ("TimeoutError", "timeout")  # an open stream may time out
+        else:
+            st = status_of(o["url"], "POST", body, {"Content-Type": "application/json",
+                                                     "Accept": "application/json, text/event-stream"})
+            ok = st in (200, 202, 400, 401, 402, 403, 405, 406, 415, 422, 429)
+        if not ok:
+            problems.append(f"remote {o['url']} -> {st}")
+    return problems, notes
+
+
+def verify():
+    data = json.loads(OUT.read_text())
+    with concurrent.futures.ThreadPoolExecutor(12) as ex:
+        results = list(ex.map(verify_one, data["servers"]))
+    report = []
+    for s, (problems, notes) in zip(data["servers"], results):
+        if problems or notes:
+            report.append({"id": s["id"], "name": s["name"], "problems": problems, "notes": notes})
+    (HERE / "verify_report.json").write_text(json.dumps({"checked": now(), "servers": report}, indent=1) + "\n")
+    bad = [r for r in report if r["problems"]]
+    print(f"verify: {len(data['servers'])} servers, {len(bad)} with problems, "
+          f"{len(report) - len(bad)} with notes only")
+    for r in bad:
+        print(f"  {r['name']} ({r['id']})")
+        for line in r["problems"]:
+            print("    -", line)
+
+
 def now():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
 
@@ -306,6 +413,6 @@ def save(data):
 
 
 if __name__ == "__main__":
-    steps = {"fetch": fetch, "probe": probe, "inject": inject}
+    steps = {"fetch": fetch, "probe": probe, "inject": inject, "verify": verify}
     for step in sys.argv[1:] or ["fetch", "probe", "inject"]:
         steps[step]()

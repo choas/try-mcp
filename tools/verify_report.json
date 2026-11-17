@@ -1,0 +1,21 @@
+{
+ "checked": "2026-11-17",
+ "servers": [
+  {
+   "id": "com.apify/apify-mcp-server",
+   "name": "Apify MCP Server",
+   "problems": [],
+   "notes": [
+    "docs link -> 401"
+   ]
+  },
+  {
+   "id": "com.microsoft/dataverse",
+   "name": "Microsoft Dataverse",
+   "problems": [],
+   "notes": [
+    "docs link -> 403"
+   ]
+  }
+ ]
+}

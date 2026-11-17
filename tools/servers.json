@@ -584,10 +584,11 @@
      "args": [
       "-p",
       "3.13",
+      "--from",
+      "git+https://github.com/oraios/serena",
+      "serena",
       "start-mcp-server",
-      "--project-from-cwd",
-      "--context",
-      "serena-agent"
+      "--project-from-cwd"
      ],
      "env": {},
      "params": []
@@ -864,9 +865,16 @@
     {
      "kind": "http",
      "label": "Remote (HTTP)",
-     "url": "https://myPlatform.jfrog.github.io/mcp",
+     "url": "https://${JFROG_PLATFORM_URL}/mcp",
      "headers": {},
-     "params": []
+     "params": [
+      {
+       "key": "JFROG_PLATFORM_URL",
+       "desc": "Host of your JFrog Cloud platform, for example mycompany.jfrog.io",
+       "required": true,
+       "secret": false
+      }
+     ]
     }
    ],
    "v2": null,
@@ -1695,7 +1703,7 @@
    "name": "ScrapingBee",
    "group": "Search and web data",
    "desc": "Scrape any web page, search Google/Amazon/Walmart/YouTube and extract data via the ScrapingBee API.",
-   "link": "https://www.scrapingbee.com/mcp/",
+   "link": "https://github.com/ScrapingBee/mcp-server",
    "source": "registry",
    "options": [
     {
@@ -2209,17 +2217,17 @@
   },
   {
    "id": "com.mermaidchart/mermaid-mcp",
-   "slug": "mermaid-chart",
-   "name": "Mermaid Chart",
+   "slug": "mermaid",
+   "name": "Mermaid",
    "group": "Project management and productivity",
    "desc": "MCP server for Mermaid diagram validation and rendering",
-   "link": "https://github.com/Mermaid-Chart/mermaid-mcp",
+   "link": "https://mermaid.ai/docs/ai/mcp-server",
    "source": "registry",
    "options": [
     {
      "kind": "http",
      "label": "Remote (HTTP)",
-     "url": "https://mcp.mermaidchart.com/mcp",
+     "url": "https://mcp.mermaid.ai/mcp",
      "headers": {},
      "params": []
     }
@@ -2660,12 +2668,12 @@
    "v2note": "login required (HTTP 401)"
   },
   {
-   "id": "io.github.cloudinary/asset-management-mcp",
+   "id": "com.cloudinary/asset-management-mcp",
    "slug": "cloudinary-asset-management",
    "name": "Cloudinary Asset Management",
    "group": "Design and content",
    "desc": "Upload, generate, organize, search, and transform images, videos, and files with AI-powered tools.",
-   "link": "https://github.com/cloudinary/asset-management-mcp",
+   "link": "https://cloudinary.com/documentation/cloudinary_llm_mcp",
    "source": "registry",
    "options": [
     {
@@ -2681,19 +2689,19 @@
       {
        "key": "CLOUDINARY_CLOUD_NAME",
        "desc": "Your Cloudinary cloud name. Find it in your Cloudinary Dashboard.",
-       "required": true,
+       "required": false,
        "secret": false
       },
       {
        "key": "CLOUDINARY_API_KEY",
        "desc": "Your Cloudinary API key. Found in Dashboard > Settings > Access Keys.",
-       "required": true,
-       "secret": true
+       "required": false,
+       "secret": false
       },
       {
        "key": "CLOUDINARY_API_SECRET",
        "desc": "Your Cloudinary API secret. Found in Dashboard > Settings > Access Keys.",
-       "required": true,
+       "required": false,
        "secret": true
       }
      ]
@@ -2722,7 +2730,7 @@
        "key": "CLOUDINARY_API_KEY",
        "desc": "Your Cloudinary API key. Found in Dashboard > Settings > Access Keys.",
        "required": true,
-       "secret": true
+       "secret": false
       },
       {
        "key": "CLOUDINARY_API_SECRET",
@@ -2746,7 +2754,7 @@
       "CLOUDINARY_API_KEY",
       "-e",
       "CLOUDINARY_API_SECRET",
-      "docker.io/cloudinary/asset-management-mcp:0.11.6"
+      "docker.io/cloudinary/asset-management-mcp:0.11.8"
      ],
      "env": {
       "CLOUDINARY_CLOUD_NAME": "${CLOUDINARY_CLOUD_NAME}",
@@ -2764,7 +2772,7 @@
        "key": "CLOUDINARY_API_KEY",
        "desc": "Your Cloudinary API key. Found in Dashboard > Settings > Access Keys.",
        "required": true,
-       "secret": true
+       "secret": false
       },
       {
        "key": "CLOUDINARY_API_SECRET",
@@ -2872,7 +2880,7 @@
    "name": "Railway MCP",
    "group": "Cloud and infrastructure",
    "desc": "Develop, manage, and debug Railway projects, services, and deployments from within agents.",
-   "link": "https://github.com/railwayapp/mono",
+   "link": "https://docs.railway.com/reference/mcp-server",
    "source": "registry",
    "options": [
     {
@@ -4380,7 +4388,7 @@
    "name": "ClickHouse",
    "group": "Databases and analytics",
    "desc": "Official ClickHouse MCP server for querying and exploring ClickHouse clusters and chDB.",
-   "link": "https://clickhouse.com",
+   "link": "https://clickhouse.com/docs/concepts/features/interfaces/mcp",
    "source": "registry",
    "options": [
     {
@@ -6296,26 +6304,6 @@
    "v2note": "login required (HTTP 401)"
   },
   {
-   "id": "io.github.airbytehq/airbyte",
-   "slug": "airbyte",
-   "name": "Airbyte",
-   "group": "Databases and analytics",
-   "desc": "Build and manage data pipelines, add custom connectors, and chat with your data.",
-   "link": "https://airbyte.com/mcp",
-   "source": "registry",
-   "options": [
-    {
-     "kind": "http",
-     "label": "Remote (HTTP)",
-     "url": "https://mcp.airbyte.com/mcp",
-     "headers": {},
-     "params": []
-    }
-   ],
-   "v2": null,
-   "v2note": "login required (HTTP 401)"
-  },
-  {
    "id": "org.typesense/typesense-cloud",
    "slug": "typesense-cloud",
    "name": "Typesense Cloud",
@@ -6646,7 +6634,7 @@
    "name": "Axiom",
    "group": "Observability and product analytics",
    "desc": "List datasets, schemas, run APL queries, and use prompts for exploration, anomalies, and monitoring.",
-   "link": "https://github.com/axiomhq/mcp",
+   "link": "https://axiom.co/docs/console/intelligence/mcp-server",
    "source": "registry",
    "options": [
     {
@@ -6839,7 +6827,7 @@
     {
      "kind": "http",
      "label": "Remote (HTTP)",
-     "url": "https://mcp.globalping.io/mcp",
+     "url": "https://mcp.globalping.dev/mcp",
      "headers": {},
      "params": []
     }
@@ -7412,7 +7400,7 @@
    "name": "Composio",
    "group": "Automation and integration",
    "desc": "Connect AI agents to 1000+ apps with managed authentication and tool-calling.",
-   "link": "https://composio.dev",
+   "link": "https://docs.composio.dev/docs/sessions-via-mcp",
    "source": "registry",
    "options": [
     {

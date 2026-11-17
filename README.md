@@ -358,6 +358,9 @@ python3 tools/build_catalog.py fetch probe inject
 - `fetch` reads the servers named in `tools/curated.json` from the registry (plus `tools/manual.json`).
 - `probe` sends one unauthenticated `server/discover` request to each remote server and stores the result as the V2 flag.
 - `inject` writes `tools/servers.json` into `static/index.html`.
+- `verify` checks every entry (registry status, docs link, remote URL, npm or PyPI package) and writes `tools/verify_report.json`. It changes nothing.
+
+Corrections for registry entries that are out of date go into `tools/overrides.json`.
 
 ## API Usage Examples
 

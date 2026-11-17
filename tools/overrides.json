@@ -1,0 +1,80 @@
+{
+ "com.mermaidchart/mermaid-mcp": {
+  "name": "Mermaid",
+  "slug": "mermaid",
+  "link": "https://mermaid.ai/docs/ai/mcp-server",
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP)",
+    "url": "https://mcp.mermaid.ai/mcp",
+    "headers": {},
+    "params": []
+   }
+  ]
+ },
+ "io.github.ClickHouse/mcp-clickhouse": {
+  "link": "https://clickhouse.com/docs/concepts/features/interfaces/mcp"
+ },
+ "io.github.oraios/serena": {
+  "options": [
+   {
+    "kind": "stdio",
+    "label": "Local (uvx)",
+    "command": "uvx",
+    "args": [
+     "-p",
+     "3.13",
+     "--from",
+     "git+https://github.com/oraios/serena",
+     "serena",
+     "start-mcp-server",
+     "--project-from-cwd"
+    ],
+    "env": {},
+    "params": []
+   }
+  ]
+ },
+ "io.github.jfrog/jfrog-mcp-server": {
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP)",
+    "url": "https://${JFROG_PLATFORM_URL}/mcp",
+    "headers": {},
+    "params": [
+     {
+      "key": "JFROG_PLATFORM_URL",
+      "desc": "Host of your JFrog Cloud platform, for example mycompany.jfrog.io",
+      "required": true,
+      "secret": false
+     }
+    ]
+   }
+  ]
+ },
+ "com.scrapingbee/mcp": {
+  "link": "https://github.com/ScrapingBee/mcp-server"
+ },
+ "com.railway/mcp": {
+  "link": "https://docs.railway.com/reference/mcp-server"
+ },
+ "co.axiom/mcp": {
+  "link": "https://axiom.co/docs/console/intelligence/mcp-server"
+ },
+ "io.github.ComposioHQ/composio": {
+  "link": "https://docs.composio.dev/docs/sessions-via-mcp"
+ },
+ "io.globalping/mcp": {
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP)",
+    "url": "https://mcp.globalping.dev/mcp",
+    "headers": {},
+    "params": []
+   }
+  ]
+ }
+}

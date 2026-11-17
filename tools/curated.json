@@ -90,7 +90,7 @@
   "com.wix/mcp",
   "io.sanity.www/mcp",
   "com.mintlify/adminmcp",
-  "io.github.cloudinary/asset-management-mcp"
+  "com.cloudinary/asset-management-mcp"
  ],
  "Cloud and infrastructure": [
   "com.cloudflare.mcp/mcp",
@@ -134,7 +134,6 @@
   "com.microsoft/powerbi-modeling-mcp",
   "io.github.metabase/mcp",
   "app.thoughtspot/mcp-server",
-  "io.github.airbytehq/airbyte",
   "org.typesense/typesense-cloud",
   "io.github.algolia/algolia-productivity"
  ],
