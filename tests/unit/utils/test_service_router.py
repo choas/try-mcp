@@ -85,13 +85,13 @@ class TestServiceRouter:
     def test_parse_url_valid_patterns(self):
         """Test parsing valid URL patterns."""
         test_cases = [
-            ("/mvg/v1", ("mvg", "v1")),
+            ("/weather/v1", ("weather", "v1")),
             ("/test-service/v2", ("test-service", "v2")),
             ("/emoji-oracle/v1", ("emoji-oracle", "v1")),
             ("/service/v10", ("service", "v10")),
-            ("http://example.com/mvg/v1", ("mvg", "v1")),
+            ("http://example.com/weather/v1", ("weather", "v1")),
             ("https://api.example.com/test/v2", ("test", "v2")),
-            ("/mvg/v1/extra/path", ("mvg", "v1")),  # Extra path should be ignored
+            ("/weather/v1/extra/path", ("weather", "v1")),  # Extra path should be ignored
         ]
         
         for url, expected in test_cases:
@@ -101,15 +101,15 @@ class TestServiceRouter:
     def test_parse_url_invalid_patterns(self):
         """Test parsing invalid URL patterns."""
         invalid_urls = [
-            "/mvg",  # Missing version
-            "/mvg/",  # Missing version
-            "/mvg/1",  # Missing 'v' prefix
-            "/mvg/v",  # Missing version number
-            "mvg/v1",  # Missing leading slash
+            "/weather",  # Missing version
+            "/weather/",  # Missing version
+            "/weather/1",  # Missing 'v' prefix
+            "/weather/v",  # Missing version number
+            "weather/v1",  # Missing leading slash
             "/",  # Root only
             "",  # Empty string
-            "/mvg/v1.2",  # Decimal version not supported
-            "/mvg/version1",  # Invalid version format
+            "/weather/v1.2",  # Decimal version not supported
+            "/weather/version1",  # Invalid version format
         ]
         
         for url in invalid_urls:
@@ -118,7 +118,7 @@ class TestServiceRouter:
     
     def test_validate_url_pattern(self):
         """Test URL pattern validation."""
-        assert self.router.validate_url_pattern("/mvg/v1") is True
+        assert self.router.validate_url_pattern("/weather/v1") is True
         assert self.router.validate_url_pattern("http://example.com/test/v2") is True
         assert self.router.validate_url_pattern("/invalid") is False
         assert self.router.validate_url_pattern("") is False

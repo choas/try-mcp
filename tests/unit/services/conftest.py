@@ -10,7 +10,6 @@ from services.emoji_oracle_service import EmojiOracleService
 from services.fortune_service import FortuneService
 from services.lucky_numbers_service import LuckyNumbersService
 from services.mindful_service import MindfulService
-from services.mvg_service import MVGService
 from services.timestamp_service import TimestampService
 from services.weather_service import WeatherService
 from data.models import ToolResult
@@ -37,11 +36,6 @@ def lucky_numbers_service():
 def mindful_service():
     """Fixture providing a MindfulService instance."""
     return MindfulService()
-
-@pytest.fixture
-def mvg_service():
-    """Fixture providing an MVGService instance."""
-    return MVGService()
 
 @pytest.fixture
 def timestamp_service():

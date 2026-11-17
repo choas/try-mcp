@@ -22,7 +22,6 @@ from services.emoji_oracle_service import EmojiOracleService
 from services.fortune_service import FortuneService
 from services.lucky_numbers_service import LuckyNumbersService
 from services.mindful_service import MindfulService
-from services.mvg_service import MVGService
 from services.timestamp_service import TimestampService
 from services.weather_service import WeatherService
 from data.models import ToolResult, ServiceInfo
@@ -45,9 +44,6 @@ def client():
     ("timestamp", "generate_random_timestamp", {"start": "2023-01-01T00:00:00", "end": "2023-01-02T00:00:00"}),
     ("fortune", "get_fortune_cookie", {}),
     ("lucky-numbers", "generate_blessed_numbers", {"scenario": "lottery"}),
-    # MVG service endpoints
-    ("mvg", "get_departures", {"station_name": "Hauptbahnhof"}),
-    ("mvg", "find_station", {"station_name": "Marienplatz"}),
 ])
 def test_service_endpoints(client, service_name, endpoint, params):
     """Test all service endpoints through direct API calls."""
@@ -266,7 +262,7 @@ def test_service_registry_integration(client):
         return
     
     # Check that we have all expected services
-    expected_services = ["mindful", "weather", "emoji-oracle", "timestamp", "fortune", "lucky-numbers", "mvg"]
+    expected_services = ["mindful", "weather", "emoji-oracle", "timestamp", "fortune", "lucky-numbers"]
     
     for service in expected_services:
         assert service in service_names, f"Service {service} should be registered"
@@ -340,12 +336,6 @@ def test_service_info_endpoint(client):
     
     # Lucky numbers service with invalid energy level
     ("lucky-numbers", "generate_blessed_numbers", {"scenario": "lottery", "energy_level": "super-extreme"}, "Invalid energy level"),
-    
-    # MVG service with missing station name
-    ("mvg", "get_departures", {}, "station_name"),
-    
-    # MVG service with invalid station name
-    ("mvg", "find_station", {"station_name": ""}, "station_name")
 ])
 def test_service_error_handling(client, service_name, endpoint, invalid_params, expected_error):
     """Test error handling for all services with invalid parameters."""

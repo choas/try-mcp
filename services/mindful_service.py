@@ -39,6 +39,23 @@ class MindfulService(BaseService):
                 }
             }
         ]
+
+        self.add_prompt(
+            name="mindful_pause",
+            description="A short guided pause built around one mindful sentence",
+            arguments=[{"name": "situation", "description": "What is on your mind right now", "required": False}],
+            render=lambda args: (
+                "Call the get_mindful_sentence tool and guide me through a one-minute pause built around "
+                "the sentence it returns: one line to arrive, the sentence, and one question to reflect on."
+                + (f" Relate it gently to my situation: {args['situation']}." if "situation" in args else "")
+            )
+        )
+        self.add_resource(
+            uri="mindful://sentences",
+            name="Mindful sentences",
+            description="The full pool of sentences the get_mindful_sentence tool draws from",
+            read=lambda: {"count": len(self._sentence_pool), "sentences": self._sentence_pool}
+        )
     
     async def handle_request(self, method: str, params: Dict[str, Any]) -> ToolResult:
         """Handle incoming mindful service requests.

@@ -52,11 +52,6 @@ def test_resource_usage_under_load():
             "url": "/services/lucky-numbers/v1/generate_blessed_numbers",
             "json": {"scenario": "lottery", "count": 6},
             "name": "lucky-numbers"
-        },
-        {
-            "url": "/services/mvg/v1/find_station",
-            "json": {"query": "Hauptbahnhof", "limit": 3},
-            "name": "mvg"
         }
     ]
     

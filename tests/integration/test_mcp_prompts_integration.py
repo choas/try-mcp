@@ -5,6 +5,11 @@ import json
 from multi_service_server import MultiServiceMCPServer
 
 
+def fortune_prompts(response):
+    """The fortune prompts in a prompts/list answer. Other services add prompts of their own."""
+    return [p for p in response["result"]["prompts"] if p["name"].startswith("fortune_prompt_")]
+
+
 class TestMCPPromptsIntegration:
     """Test MCP prompts/list method integration."""
     
@@ -30,7 +35,7 @@ class TestMCPPromptsIntegration:
         assert "result" in response
         assert "prompts" in response["result"]
         
-        prompts = response["result"]["prompts"]
+        prompts = fortune_prompts(response)
         
         # Should have 30 fortune prompts
         assert len(prompts) == 30
@@ -114,7 +119,7 @@ class TestMCPPromptsIntegration:
             if request_id is not None:
                 assert response["id"] == request_id
             assert "result" in response
-            assert len(response["result"]["prompts"]) == 30
+            assert len(fortune_prompts(response)) == 30
     
     @pytest.mark.asyncio
     async def test_prompts_list_error_handling(self):
@@ -131,7 +136,7 @@ class TestMCPPromptsIntegration:
         
         # Should still work despite invalid params
         assert "result" in response
-        assert len(response["result"]["prompts"]) == 30
+        assert len(fortune_prompts(response)) == 30
     
     @pytest.mark.asyncio
     async def test_prompts_list_consistency(self):
@@ -247,7 +252,7 @@ class TestMCPPromptsEdgeCases:
         # Should still return valid response with empty prompts
         assert "result" in response
         assert "prompts" in response["result"]
-        assert response["result"]["prompts"] == []
+        assert fortune_prompts(response) == []
     
     @pytest.mark.asyncio
     async def test_prompts_list_with_multiple_fortune_services(self):
@@ -264,7 +269,7 @@ class TestMCPPromptsEdgeCases:
         
         # Should have prompts from the one fortune service
         assert "result" in response
-        assert len(response["result"]["prompts"]) == 30
+        assert len(fortune_prompts(response)) == 30
     
     @pytest.mark.asyncio
     async def test_prompts_list_json_serialization(self):

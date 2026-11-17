@@ -56,3 +56,6 @@ coverage.xml
 *.log
 upload.sh
 *.tar
+
+# AI output
+.ai-output/

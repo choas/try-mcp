@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 from services.base_service import BaseService
 from data.models import ToolResult
-from data.emoji_symbols import get_emoji_oracle_reading
+from data.emoji_symbols import get_emoji_oracle_reading, get_emoji_pool
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,23 @@ class EmojiOracleService(BaseService):
                 }
             }
         ]
+
+        self.add_prompt(
+            name="ask_the_oracle",
+            description="Ask the emoji oracle a question and get the reading interpreted",
+            arguments=[{"name": "question", "description": "The question you want to ask the oracle", "required": False}],
+            render=lambda args: (
+                "Call the get_emoji_oracle tool and interpret the reading for me in three short sentences, "
+                "one per emoji, in a playful and mysterious tone."
+                + (f" My question to the oracle: {args['question']}" if "question" in args else "")
+            )
+        )
+        self.add_resource(
+            uri="emoji-oracle://symbols",
+            name="Oracle symbols",
+            description="All emoji symbols the oracle can draw, grouped by category",
+            read=get_emoji_pool
+        )
     
     async def handle_request(self, method: str, params: Dict[str, Any]) -> ToolResult:
         """Handle incoming emoji oracle service requests.

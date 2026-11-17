@@ -34,23 +34,6 @@ curl -X POST http://localhost:8003/mcp -H "Content-Type: application/json" -d '{
 }'
 ```
 
-### MVG Service: Get Departures
-
-```bash
-curl -X POST http://localhost:8003/mcp -H "Content-Type: application/json" -d '{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "mvg_get_departures",
-    "arguments": {
-      "station": "Hauptbahnhof",
-      "limit": 5
-    }
-  }
-}'
-```
-
 ### Mindful Service: Get Mindful Sentence
 
 ```bash
@@ -172,8 +155,8 @@ curl -X POST http://localhost:8003/services/lucky-numbers/v1 -H "Content-Type: a
 
 ```bash
 # Call a method directly
-curl -X POST http://localhost:8003/services/mvg/v1/get_departures -H "Content-Type: application/json" -d '{
-  "station": "Hauptbahnhof"
+curl -X POST http://localhost:8003/services/weather/v1/get_weather_forecast -H "Content-Type: application/json" -d '{
+  "location": "Berlin"
 }'
 
 # Get a mindful sentence
@@ -568,12 +551,6 @@ Replace `/path/to/your/multi-service-mcp-project` with the actual path to your p
 
 Once configured, you can ask Claude to use various services:
 
-#### MVG Service
-
-- "Check departures from Hauptbahnhof"
-- "What trains are leaving from Marienplatz?"
-- "Show me departures from Sendlinger Tor in 10 minutes"
-
 #### Mindful Service
 
 - "Show me a mindful sentence for today"
@@ -624,56 +601,30 @@ Response:
 {
   "services": [
     {
-      "name": "mvg",
+      "name": "weather",
       "version": "v1",
-      "description": "Munich public transport departures and station information",
+      "description": "Optimistic weather forecast service that always predicts pleasant conditions",
       "status": "active",
       "tools": [
         {
-          "name": "get_departures",
-          "description": "Get real-time departures from a Munich public transport station",
+          "name": "get_weather_forecast",
+          "description": "Get an optimistic weather forecast for tomorrow.",
           "inputSchema": {
             "type": "object",
             "properties": {
-              "station": {
+              "location": {
                 "type": "string",
-                "description": "Name of the station"
-              },
-              "limit": {
-                "type": "integer",
-                "description": "Maximum number of departures to return"
-              },
-              "offset": {
-                "type": "integer",
-                "description": "Time offset in minutes"
+                "description": "Location for the forecast (optional)"
               }
             },
-            "required": ["station"]
-          }
-        },
-        {
-          "name": "find_station",
-          "description": "Find stations by name or partial name",
-          "inputSchema": {
-            "type": "object",
-            "properties": {
-              "query": {
-                "type": "string",
-                "description": "Station name or partial name"
-              },
-              "limit": {
-                "type": "integer",
-                "description": "Maximum number of results to return"
-              }
-            },
-            "required": ["query"]
+            "required": []
           }
         }
       ]
     },
     // Other services...
   ],
-  "total_services": 7
+  "total_services": 6
 }
 ```
 
@@ -743,7 +694,6 @@ Response:
   "status": "healthy",
   "platform": "multi-service-mcp",
   "services": {
-    "mvg_v1": "active",
     "mindful_v1": "active",
     "weather_v1": "active",
     "emoji-oracle_v1": "active",
@@ -751,7 +701,7 @@ Response:
     "fortune_v1": "active",
     "lucky-numbers_v1": "active"
   },
-  "total_services": 7
+  "total_services": 6
 }
 ```
 
@@ -769,9 +719,9 @@ Response:
   "description": "Multi-service MCP platform with routing support",
   "registered_services": [
     {
-      "name": "mvg",
+      "name": "weather",
       "version": "v1",
-      "description": "Munich public transport departures and station information",
+      "description": "Optimistic weather forecast service that always predicts pleasant conditions",
       "status": "active"
     },
     // Other services...

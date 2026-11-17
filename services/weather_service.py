@@ -53,6 +53,33 @@ class WeatherService(BaseService):
             "comfortable with light clouds",
             "ideal outdoor conditions"
         ]
+
+        self.add_prompt(
+            name="plan_my_day",
+            description="Plan tomorrow around the (always optimistic) weather forecast",
+            arguments=[
+                {"name": "location", "description": "City or place to plan for", "required": True},
+                {"name": "activity", "description": "What you would like to do", "required": False},
+            ],
+            render=lambda args: (
+                f"Call the get_weather_forecast tool for {args['location']} and plan my day tomorrow around it"
+                + (f", with a focus on: {args['activity']}" if "activity" in args else "")
+                + ". Give me a morning, an afternoon and an evening suggestion. "
+                "Mention that this demo forecast is invented and always pleasant."
+            )
+        )
+        self.add_resource(
+            uri="weather://conditions",
+            name="Forecast building blocks",
+            description="The conditions and value ranges the demo forecast is drawn from. The forecast is invented, not real weather data.",
+            read=lambda: {
+                "note": "Demo data: every forecast is random and pleasant.",
+                "conditions": self._conditions,
+                "temperature_celsius": {"min": 18.0, "max": 24.0},
+                "humidity_percent": {"min": 40, "max": 60},
+                "wind_kmh": {"min": 5, "max": 12},
+            }
+        )
     
     async def handle_request(self, method: str, params: Dict[str, Any]) -> ToolResult:
         """Handle incoming weather service requests.

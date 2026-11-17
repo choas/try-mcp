@@ -4,107 +4,12 @@ This document provides detailed information about each service available in the 
 
 ## Table of Contents
 
-1. [MVG Service](#mvg-service)
-2. [Mindful Service](#mindful-service)
-3. [Weather Service](#weather-service)
-4. [Emoji Oracle Service](#emoji-oracle-service)
-5. [Timestamp Service](#timestamp-service)
-6. [Fortune Cookie Service](#fortune-cookie-service)
-7. [Lucky Numbers Service](#lucky-numbers-service)
-
-## MVG Service
-
-The MVG Service provides real-time information about Munich's public transportation system.
-
-### Endpoint
-
-- `/mvg/v1`
-
-### Tools
-
-#### get_departures
-
-Get real-time departures from a Munich public transport station.
-
-**Parameters:**
-- `station` (string, required): Name of the station
-- `limit` (integer, optional): Maximum number of departures to return
-- `offset` (integer, optional): Time offset in minutes
-
-**Example Request:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "get_departures",
-    "arguments": {
-      "station": "Hauptbahnhof",
-      "limit": 5,
-      "offset": 10
-    }
-  }
-}
-```
-
-**Example Response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": "Departures from Hauptbahnhof in 10 minutes:\n\n1. S1 to Ostbahnhof (11:35)\n2. U4 to Arabellapark (11:36)\n3. S8 to Flughafen München (11:38)\n4. U5 to Neuperlach Süd (11:40)\n5. Tram 19 to Berg am Laim (11:42)"
-      }
-    ],
-    "is_error": false
-  }
-}
-```
-
-#### find_station
-
-Find stations by name or partial name.
-
-**Parameters:**
-- `query` (string, required): Station name or partial name
-- `limit` (integer, optional): Maximum number of results to return
-
-**Example Request:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "find_station",
-    "arguments": {
-      "query": "Marien",
-      "limit": 3
-    }
-  }
-}
-```
-
-**Example Response:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": "Stations matching 'Marien':\n\n1. Marienplatz\n2. Marienhof\n3. Mariensäule"
-      }
-    ],
-    "is_error": false
-  }
-}
-```
+1. [Mindful Service](#mindful-service)
+2. [Weather Service](#weather-service)
+3. [Emoji Oracle Service](#emoji-oracle-service)
+4. [Timestamp Service](#timestamp-service)
+5. [Fortune Cookie Service](#fortune-cookie-service)
+6. [Lucky Numbers Service](#lucky-numbers-service)
 
 ## Mindful Service
 

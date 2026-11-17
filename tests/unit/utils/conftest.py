@@ -13,11 +13,6 @@ def sample_config():
     """Fixture providing a sample configuration dictionary."""
     return {
         "services": {
-            "mvg": {
-                "enabled": True,
-                "version": "v1",
-                "rate_limit": 100
-            },
             "mindful": {
                 "enabled": True,
                 "version": "v1",
@@ -71,7 +66,7 @@ def mock_env_vars():
         "MCP_LOG_LEVEL": "debug",
         "MCP_PORT": "8004",
         "MCP_HOST": "localhost",
-        "MCP_SERVICES_MVG_ENABLED": "true",
+        "MCP_SERVICES_WEATHER_ENABLED": "true",
         "MCP_SERVICES_MINDFUL_ENABLED": "true"
     }
     with patch.dict(os.environ, env_vars):
@@ -90,7 +85,6 @@ def assert_config_loaded(config):
     assert "server" in config
     assert "logging" in config
     
-    assert "mvg" in config["services"]
     assert "mindful" in config["services"]
     assert "weather" in config["services"]
     

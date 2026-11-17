@@ -54,6 +54,35 @@ class TimestampService(BaseService):
                 }
             }
         ]
+
+        self.add_prompt(
+            name="surprise_schedule",
+            description="Let chance pick a time for an activity",
+            arguments=[
+                {"name": "activity", "description": "What you want to schedule", "required": True},
+                {"name": "day_period", "description": "morning, day, evening or night", "required": False},
+            ],
+            render=lambda args: (
+                "Call the generate_random_timestamp tool"
+                + (f" with day_period '{args['day_period']}'" if "day_period" in args else "")
+                + f" and schedule this activity at the time it returns: {args['activity']}. "
+                "Answer with the date and time in 24-hour format and one sentence on why that time is as good as any."
+            )
+        )
+        self.add_resource(
+            uri="timestamp://day-periods",
+            name="Day periods",
+            description="The hour ranges behind the day_period values of generate_random_timestamp",
+            read=lambda: {
+                "default": "day",
+                "periods": {
+                    "morning": {"from": "06:00", "to": "12:00"},
+                    "day": {"from": "10:00", "to": "16:00"},
+                    "evening": {"from": "16:00", "to": "22:00"},
+                    "night": {"from": "22:00", "to": "06:00", "note": "ends on the following day"},
+                },
+            }
+        )
     
     async def handle_request(self, method: str, params: Dict[str, Any]) -> ToolResult:
         """Handle incoming timestamp service requests.

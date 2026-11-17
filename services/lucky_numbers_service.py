@@ -23,6 +23,32 @@ class LuckyNumbersService(BaseService):
             description="Generates statistically blessed numbers for various life scenarios"
         )
 
+        self.add_prompt(
+            name="blessed_numbers_reading",
+            description="Get lucky numbers for a scenario, presented as a short reading",
+            arguments=[
+                {"name": "scenario", "description": "One of: " + ", ".join(self.SCENARIOS), "required": True},
+                {"name": "occasion", "description": "What the numbers are for, in your own words", "required": False},
+            ],
+            render=lambda args: (
+                f"Call the generate_blessed_numbers tool with scenario '{args['scenario']}'"
+                + (f" for this occasion: {args['occasion']}" if "occasion" in args else "")
+                + ". Present the numbers as a short, tongue-in-cheek reading and remind me that they are random."
+            )
+        )
+        self.add_resource(
+            uri="lucky-numbers://scenarios",
+            name="Scenarios and energy levels",
+            description="The scenarios and energy levels generate_blessed_numbers accepts, with their defaults",
+            read=lambda: {
+                "scenarios": {
+                    name: {k: v for k, v in config.items() if k in ("description", "default_count", "default_min", "default_max")}
+                    for name, config in self.SCENARIOS.items()
+                },
+                "energy_levels": {name: level["description"] for name, level in self.ENERGY_LEVELS.items()},
+            }
+        )
+
     # Define scenarios with their specific configurations
     SCENARIOS = {
         "lottery": {

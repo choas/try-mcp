@@ -28,6 +28,20 @@ class FortuneService(BaseService):
         self._fortune_cache: Dict[str, str] = {}  # hour_key -> fortune_phrase
         self._prompts = get_fortune_prompts()
         self._generation_instructions = get_fortune_generation_instructions()
+
+        self.add_resource(
+            uri="fortune://generation-instructions",
+            name="Fortune generation instructions",
+            description="The style rules for writing a surreal fortune cookie phrase",
+            read=lambda: self._generation_instructions,
+            mime_type="text/plain"
+        )
+        self.add_resource(
+            uri="fortune://inspirations",
+            name="Fortune inspirations",
+            description="The lines the fortune prompts and the get_fortune_cookie tool start from",
+            read=lambda: {"count": len(self._prompts), "inspirations": self._prompts}
+        )
         
         # Define the tools this service provides
         self._tool_definitions = [
@@ -230,3 +244,11 @@ class FortuneService(BaseService):
                 "arguments": []
             })
         return prompts
+
+    def get_prompt(self, name: str, arguments: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """Build the result of `prompts/get` for one of the fortune prompts."""
+        for i, prompt in enumerate(self._prompts):
+            if name == f"fortune_prompt_{i+1}":
+                text = f"{self._generation_instructions}\n\nTake this line as inspiration:\n\"{prompt}\""
+                return self._prompt_result(f"Fortune generation prompt: {prompt}", text)
+        return None

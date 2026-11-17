@@ -59,7 +59,7 @@
             "message": "Service not found",
             "data": {
                 "service": "invalid-service",
-                "available_services": ["mvg", "mindful", "weather", "emoji-oracle", "timestamp", "fortune", "lucky-numbers"]
+                "available_services": ["mindful", "weather", "emoji-oracle", "timestamp", "fortune", "lucky-numbers"]
             }
         }
     },

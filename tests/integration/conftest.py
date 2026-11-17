@@ -15,7 +15,6 @@ from services.emoji_oracle_service import EmojiOracleService
 from services.fortune_service import FortuneService
 from services.lucky_numbers_service import LuckyNumbersService
 from services.mindful_service import MindfulService
-from services.mvg_service import MVGService
 from services.timestamp_service import TimestampService
 from services.weather_service import WeatherService
 from data.models import ToolResult, ServiceInfo
@@ -35,7 +34,6 @@ def mock_service_registry():
     registry.register_service(FortuneService())
     registry.register_service(LuckyNumbersService())
     registry.register_service(MindfulService())
-    registry.register_service(MVGService())
     registry.register_service(TimestampService())
     registry.register_service(WeatherService())
     

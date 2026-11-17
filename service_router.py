@@ -53,7 +53,7 @@ class ServiceRouter:
         """Parse URL to extract service name and version.
         
         Args:
-            url: URL to parse (e.g., "/mvg/v1" or "http://domain/mvg/v1")
+            url: URL to parse (e.g., "/weather/v1" or "http://domain/weather/v1")
             
         Returns:
             Tuple of (service_name, version) or None if invalid

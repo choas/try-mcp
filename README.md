@@ -1,6 +1,6 @@
 # Multi-Service MCP Platform
 
-A comprehensive Model Context Protocol (MCP) platform that hosts multiple utility services through a unified HTTP-based API structure. The platform provides various services including transportation information, mindful sentences, weather forecasts, emoji oracle, random timestamps, fortune cookies, and lucky numbers.
+A comprehensive Model Context Protocol (MCP) platform that hosts multiple utility services through a unified HTTP-based API structure. The platform provides various services including mindful sentences, weather forecasts, emoji oracle, random timestamps, fortune cookies, and lucky numbers.
 
 ## Features
 
@@ -18,13 +18,12 @@ A comprehensive Model Context Protocol (MCP) platform that hosts multiple utilit
 
 ### Available Services
 
-1. **MVG Service** (`/mvg/v1`): Munich public transport departures and station information
-2. **Mindful Service** (`/mindful/v1`): Daily inspirational mindful sentences with rotation
-3. **Weather Service** (`/weather/v1`): Optimistic weather forecasts with pleasant conditions
-4. **Emoji Oracle Service** (`/emoji-oracle/v1`): Cryptic guidance through symbolic emoji combinations
-5. **Timestamp Service** (`/timestamp/v1`): Random timestamp generation within specified ranges
-6. **Fortune Cookie Service** (`/fortune/v1`): Surreal and cryptic fortune phrases that change hourly
-7. **Lucky Numbers Service** (`/lucky-numbers/v1`): Mystical number generation for various life scenarios
+1. **Mindful Service** (`/mindful/v1`): Daily inspirational mindful sentences with rotation
+2. **Weather Service** (`/weather/v1`): Optimistic weather forecasts with pleasant conditions
+3. **Emoji Oracle Service** (`/emoji-oracle/v1`): Cryptic guidance through symbolic emoji combinations
+4. **Timestamp Service** (`/timestamp/v1`): Random timestamp generation within specified ranges
+5. **Fortune Cookie Service** (`/fortune/v1`): Surreal and cryptic fortune phrases that change hourly
+6. **Lucky Numbers Service** (`/lucky-numbers/v1`): Mystical number generation for various life scenarios
 
 ## Prerequisites
 
@@ -144,44 +143,6 @@ class MyCustomService(BaseService):
 ```
 
 ## Service Details
-
-### MVG Service
-
-The MVG Service provides real-time information about Munich's public transportation system.
-
-#### Endpoints
-
-- `/mvg/v1`
-
-#### Tools
-
-1. **get_departures**
-   - **Description**: Get real-time departures from a Munich public transport station
-   - **Parameters**:
-     - `station` (string, required): Name of the station
-     - `limit` (integer, optional): Maximum number of departures to return
-     - `offset` (integer, optional): Time offset in minutes
-   - **Example**:
-     ```json
-     {
-       "station": "Hauptbahnhof",
-       "limit": 5,
-       "offset": 10
-     }
-     ```
-
-2. **find_station**
-   - **Description**: Find stations by name or partial name
-   - **Parameters**:
-     - `query` (string, required): Station name or partial name
-     - `limit` (integer, optional): Maximum number of results to return
-   - **Example**:
-     ```json
-     {
-       "query": "Marien",
-       "limit": 3
-     }
-     ```
 
 ### Mindful Service
 
@@ -353,14 +314,50 @@ The Lucky Numbers Service generates "statistically blessed" numbers for various 
 
 ## MCP Protocol Support
 
-The platform supports the following MCP methods:
+The platform answers two protocol eras on the same endpoints:
 
-- **initialize**: Initialize the MCP connection
-- **tools/list**: List available tools across all services
-- **tools/call**: Call a specific tool
-- **prompts/list**: List available prompts (from services that support prompts)
+- **Legacy (`2025-06-18`)**: the client opens with `initialize`.
+- **Modern (`2026-07-28`, "MCP v2")**: stateless, no `initialize`. Every request carries the protocol version in `params._meta` and in the `MCP-Protocol-Version` header, plus the `Mcp-Method` header (and `Mcp-Name` for `tools/call`, `prompts/get` and `resources/read`).
 
-Each service-specific endpoint also supports these methods for that particular service.
+| Endpoint | Eras |
+|---|---|
+| `/mcp` | both |
+| `/services/<name>/v1` | both |
+| `/services/<name>/v2` | only `2026-07-28`; `initialize` is rejected with `-32022` |
+
+Supported methods:
+
+- **initialize** (legacy only) and **server/discover** (modern only)
+- **tools/list**, **tools/call**
+- **prompts/list**, **prompts/get**
+- **resources/list**, **resources/read** (modern also answers **resources/templates/list** with an empty list)
+
+### Prompts and resources
+
+| Service | Prompt | Resources |
+|---|---|---|
+| mindful | `mindful_pause` | `mindful://sentences` |
+| weather | `plan_my_day` | `weather://conditions` |
+| emoji-oracle | `ask_the_oracle` | `emoji-oracle://symbols` |
+| timestamp | `surprise_schedule` | `timestamp://day-periods` |
+| fortune | `fortune_prompt_1` to `fortune_prompt_30` | `fortune://generation-instructions`, `fortune://inspirations` |
+| lucky-numbers | `blessed_numbers_reading` | `lucky-numbers://scenarios` |
+
+The protocol handling lives in `mcp_protocol.py`, the tests in `tests/integration/test_mcp_v2.py`.
+
+## Server Catalog Page
+
+`static/index.html` (served at `/`) is a static catalog of MCP servers with a configuration builder for Claude Code, Claude Desktop, Codex, Antigravity, VS Code and the MCP Inspector. Values typed into the page stay in the browser. The example services page moved to `/examples/`.
+
+The catalog data comes from the official MCP Registry and is embedded into the page at build time:
+
+```bash
+python3 tools/build_catalog.py fetch probe inject
+```
+
+- `fetch` reads the servers named in `tools/curated.json` from the registry (plus `tools/manual.json`).
+- `probe` sends one unauthenticated `server/discover` request to each remote server and stores the result as the V2 flag.
+- `inject` writes `tools/servers.json` into `static/index.html`.
 
 ## API Usage Examples
 
@@ -417,8 +414,8 @@ curl -X POST http://localhost:8003/services/lucky-numbers/v1 -H "Content-Type: a
 
 ```bash
 # Call a method directly
-curl -X POST http://localhost:8003/services/mvg/v1/get_departures -H "Content-Type: application/json" -d '{
-  "station": "Hauptbahnhof"
+curl -X POST http://localhost:8003/services/weather/v1/get_weather_forecast -H "Content-Type: application/json" -d '{
+  "location": "Berlin"
 }'
 
 # Get a mindful sentence
@@ -438,9 +435,6 @@ The platform can be configured using a JSON configuration file or environment va
     "port": 8003
   },
   "services": {
-    "mvg": {
-      "enabled": true
-    },
     "mindful": {
       "enabled": true
     },
@@ -468,7 +462,7 @@ The platform can be configured using a JSON configuration file or environment va
 - `MCP_CONFIG`: Path to configuration file (default: `config.json`)
 - `MCP_LOG_LEVEL`: Logging level (default: `info`)
 - `MCP_PORT`: Server port (default: `8003`)
-- `MCP_SERVICE_<NAME>_ENABLED`: Enable/disable specific services (e.g., `MCP_SERVICE_MVG_ENABLED=true`)
+- `MCP_SERVICE_<NAME>_ENABLED`: Enable/disable specific services (e.g., `MCP_SERVICE_WEATHER_ENABLED=true`)
 
 ## Claude Desktop Configuration
 

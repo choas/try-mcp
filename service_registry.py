@@ -114,7 +114,6 @@ class ServiceRegistry:
         
         # Common service modules to try
         service_modules = [
-            {"module": "services.mvg_service", "class": "MVGService"},
             {"module": "services.mindful_service", "class": "MindfulService"},
             {"module": "services.emoji_oracle_service", "class": "EmojiOracleService"},
             {"module": "services.fortune_service", "class": "FortuneService"},

@@ -46,11 +46,6 @@ def test_concurrent_requests():
             "url": "/services/lucky-numbers/v1/generate_blessed_numbers",
             "json": {"scenario": "lottery", "count": 6},
             "name": "lucky-numbers"
-        },
-        {
-            "url": "/services/mvg/v1/find_station",
-            "json": {"query": "Hauptbahnhof", "limit": 3},
-            "name": "mvg"
         }
     ]
     
@@ -170,15 +165,6 @@ def test_concurrent_mcp_requests():
             "params": {
                 "name": "lucky-numbers_generate_blessed_numbers",
                 "arguments": {"scenario": "lottery", "count": 6}
-            }
-        },
-        {
-            "jsonrpc": "2.0",
-            "id": 7,
-            "method": "tools/call",
-            "params": {
-                "name": "mvg_find_station",
-                "arguments": {"query": "Hauptbahnhof", "limit": 3}
             }
         }
     ]

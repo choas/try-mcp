@@ -1,0 +1,350 @@
+[
+ {
+  "id": "modelcontextprotocol/servers:filesystem",
+  "slug": "filesystem",
+  "name": "Filesystem",
+  "group": "Reference servers",
+  "desc": "Read and write files inside the directories you allow.",
+  "link": "https://github.com/modelcontextprotocol/servers",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "stdio",
+    "label": "Local (npx)",
+    "command": "npx",
+    "args": [
+     "-y",
+     "@modelcontextprotocol/server-filesystem",
+     "${ALLOWED_DIRECTORY}"
+    ],
+    "env": {},
+    "params": [
+     {
+      "key": "ALLOWED_DIRECTORY",
+      "desc": "Directory the server may access",
+      "required": true,
+      "secret": false,
+      "hint": "/path/to/folder"
+     }
+    ]
+   }
+  ],
+  "v2": null
+ },
+ {
+  "id": "modelcontextprotocol/servers:git",
+  "slug": "git",
+  "name": "Git",
+  "group": "Reference servers",
+  "desc": "Read, search and change a local Git repository.",
+  "link": "https://github.com/modelcontextprotocol/servers",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "stdio",
+    "label": "Local (uvx)",
+    "command": "uvx",
+    "args": [
+     "mcp-server-git",
+     "--repository",
+     "${REPOSITORY_PATH}"
+    ],
+    "env": {},
+    "params": [
+     {
+      "key": "REPOSITORY_PATH",
+      "desc": "Path to the Git repository",
+      "required": true,
+      "secret": false,
+      "hint": "/path/to/repo"
+     }
+    ]
+   }
+  ],
+  "v2": null
+ },
+ {
+  "id": "modelcontextprotocol/servers:fetch",
+  "slug": "fetch",
+  "name": "Fetch",
+  "group": "Reference servers",
+  "desc": "Fetch a web page and convert it to Markdown.",
+  "link": "https://github.com/modelcontextprotocol/servers",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "stdio",
+    "label": "Local (uvx)",
+    "command": "uvx",
+    "args": [
+     "mcp-server-fetch"
+    ],
+    "env": {},
+    "params": []
+   }
+  ],
+  "v2": null
+ },
+ {
+  "id": "modelcontextprotocol/servers:memory",
+  "slug": "memory",
+  "name": "Memory",
+  "group": "Reference servers",
+  "desc": "Persistent memory as a local knowledge graph.",
+  "link": "https://github.com/modelcontextprotocol/servers",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "stdio",
+    "label": "Local (npx)",
+    "command": "npx",
+    "args": [
+     "-y",
+     "@modelcontextprotocol/server-memory"
+    ],
+    "env": {
+     "MEMORY_FILE_PATH": "${MEMORY_FILE_PATH}"
+    },
+    "params": [
+     {
+      "key": "MEMORY_FILE_PATH",
+      "desc": "File that stores the knowledge graph",
+      "required": false,
+      "secret": false
+     }
+    ]
+   }
+  ],
+  "v2": null
+ },
+ {
+  "id": "modelcontextprotocol/servers:time",
+  "slug": "time",
+  "name": "Time",
+  "group": "Reference servers",
+  "desc": "Current time and time zone conversion.",
+  "link": "https://github.com/modelcontextprotocol/servers",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "stdio",
+    "label": "Local (uvx)",
+    "command": "uvx",
+    "args": [
+     "mcp-server-time"
+    ],
+    "env": {},
+    "params": []
+   }
+  ],
+  "v2": null
+ },
+ {
+  "id": "modelcontextprotocol/servers:sequential-thinking",
+  "slug": "sequential-thinking",
+  "name": "Sequential Thinking",
+  "group": "Reference servers",
+  "desc": "Step-by-step problem solving through a sequence of thoughts.",
+  "link": "https://github.com/modelcontextprotocol/servers",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "stdio",
+    "label": "Local (npx)",
+    "command": "npx",
+    "args": [
+     "-y",
+     "@modelcontextprotocol/server-sequential-thinking"
+    ],
+    "env": {},
+    "params": []
+   }
+  ],
+  "v2": null
+ },
+ {
+  "id": "modelcontextprotocol/servers:everything",
+  "slug": "everything",
+  "name": "Everything",
+  "group": "Reference servers",
+  "desc": "Test server that exercises every MCP feature.",
+  "link": "https://github.com/modelcontextprotocol/servers",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "stdio",
+    "label": "Local (npx)",
+    "command": "npx",
+    "args": [
+     "-y",
+     "@modelcontextprotocol/server-everything"
+    ],
+    "env": {},
+    "params": []
+   }
+  ],
+  "v2": null
+ },
+ {
+  "id": "try-mcp.dev/mindful",
+  "slug": "try-mcp-mindful",
+  "name": "Mindful",
+  "group": "try-mcp.dev examples",
+  "desc": "A daily mindful sentence.",
+  "link": "/examples/",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v1, both protocol eras",
+    "url": "https://try-mcp.dev/services/mindful/v1",
+    "headers": {},
+    "params": []
+   },
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v2, only 2026-07-28",
+    "url": "https://try-mcp.dev/services/mindful/v2",
+    "headers": {},
+    "params": []
+   }
+  ],
+  "v2": true,
+  "v2note": "our own server, answers server/discover at /v1 and /v2 in the local test suite"
+ },
+ {
+  "id": "try-mcp.dev/weather",
+  "slug": "try-mcp-weather",
+  "name": "Weather",
+  "group": "try-mcp.dev examples",
+  "desc": "Optimistic weather forecasts.",
+  "link": "/examples/",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v1, both protocol eras",
+    "url": "https://try-mcp.dev/services/weather/v1",
+    "headers": {},
+    "params": []
+   },
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v2, only 2026-07-28",
+    "url": "https://try-mcp.dev/services/weather/v2",
+    "headers": {},
+    "params": []
+   }
+  ],
+  "v2": true,
+  "v2note": "our own server, answers server/discover at /v1 and /v2 in the local test suite"
+ },
+ {
+  "id": "try-mcp.dev/emoji-oracle",
+  "slug": "try-mcp-emoji-oracle",
+  "name": "Emoji Oracle",
+  "group": "try-mcp.dev examples",
+  "desc": "Cryptic guidance as emoji combinations.",
+  "link": "/examples/",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v1, both protocol eras",
+    "url": "https://try-mcp.dev/services/emoji-oracle/v1",
+    "headers": {},
+    "params": []
+   },
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v2, only 2026-07-28",
+    "url": "https://try-mcp.dev/services/emoji-oracle/v2",
+    "headers": {},
+    "params": []
+   }
+  ],
+  "v2": true,
+  "v2note": "our own server, answers server/discover at /v1 and /v2 in the local test suite"
+ },
+ {
+  "id": "try-mcp.dev/timestamp",
+  "slug": "try-mcp-timestamp",
+  "name": "Timestamp",
+  "group": "try-mcp.dev examples",
+  "desc": "Random timestamps within a range.",
+  "link": "/examples/",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v1, both protocol eras",
+    "url": "https://try-mcp.dev/services/timestamp/v1",
+    "headers": {},
+    "params": []
+   },
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v2, only 2026-07-28",
+    "url": "https://try-mcp.dev/services/timestamp/v2",
+    "headers": {},
+    "params": []
+   }
+  ],
+  "v2": true,
+  "v2note": "our own server, answers server/discover at /v1 and /v2 in the local test suite"
+ },
+ {
+  "id": "try-mcp.dev/fortune",
+  "slug": "try-mcp-fortune",
+  "name": "Fortune Cookie",
+  "group": "try-mcp.dev examples",
+  "desc": "Surreal fortune phrases that change hourly.",
+  "link": "/examples/",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v1, both protocol eras",
+    "url": "https://try-mcp.dev/services/fortune/v1",
+    "headers": {},
+    "params": []
+   },
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v2, only 2026-07-28",
+    "url": "https://try-mcp.dev/services/fortune/v2",
+    "headers": {},
+    "params": []
+   }
+  ],
+  "v2": true,
+  "v2note": "our own server, answers server/discover at /v1 and /v2 in the local test suite"
+ },
+ {
+  "id": "try-mcp.dev/lucky-numbers",
+  "slug": "try-mcp-lucky-numbers",
+  "name": "Lucky Numbers",
+  "group": "try-mcp.dev examples",
+  "desc": "Lucky numbers for different occasions.",
+  "link": "/examples/",
+  "source": "manual",
+  "options": [
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v1, both protocol eras",
+    "url": "https://try-mcp.dev/services/lucky-numbers/v1",
+    "headers": {},
+    "params": []
+   },
+   {
+    "kind": "http",
+    "label": "Remote (HTTP) /v2, only 2026-07-28",
+    "url": "https://try-mcp.dev/services/lucky-numbers/v2",
+    "headers": {},
+    "params": []
+   }
+  ],
+  "v2": true,
+  "v2note": "our own server, answers server/discover at /v1 and /v2 in the local test suite"
+ }
+]

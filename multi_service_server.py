@@ -19,6 +19,7 @@ from service_router import ServiceRouter
 from service_registry import ServiceRegistry
 from utils.error_formatter import ErrorFormatter, ErrorCode, ErrorHandler
 from utils.config_manager import ConfigManager
+import mcp_protocol
 
 # Load configuration
 config_file = os.getenv('MCP_CONFIG', 'config.json')
@@ -41,7 +42,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Multi-Service MCP Platform", 
     version="1.0.0",
-    description="Multi-service MCP platform with MVG transport and mindful sentences services"
+    description="Multi-service MCP platform with small example services (tools, prompts and resources)"
 )
 
 # Add CORS middleware for web clients
@@ -177,6 +178,11 @@ class MultiServiceMCPServer:
         
         return success
 
+    def all_services(self) -> list:
+        """The service objects behind the combined /mcp endpoint."""
+        services = [self.router.get_service(info.name, info.version) for info in self.router.list_services()]
+        return [service for service in services if service]
+
     async def handle_mcp_request(self, request: Dict[str, Any], request_uuid: str = None) -> Dict[str, Any]:
         """Handle incoming MCP requests."""
         method = request.get("method")
@@ -196,8 +202,7 @@ class MultiServiceMCPServer:
                     "result": {
                         "protocolVersion": "2025-06-18",
                         "capabilities": {
-                            "tools": {"listChanged": False},
-                            "prompts": {"listChanged": False},
+                            **service_capabilities(self.all_services()),
                             "experimental": {},
                             "transport": {
                                 "streamable": True
@@ -233,28 +238,13 @@ class MultiServiceMCPServer:
                     }
                 }
             
-            elif method == "prompts/list":
-                # Get all prompts from all services that support them
-                all_prompts = []
-                
-                # Check each service for prompt support using the generic interface
-                for service_info in self.router.list_services():
-                    service = self.router.get_service(service_info.name, service_info.version)
-                    
-                    # Use the generic supports_prompts() method
-                    if service and service.supports_prompts():
-                        # Get prompts using the generic get_prompts() method
-                        service_prompts = service.get_prompts()
-                        all_prompts.extend(service_prompts)
-                        logger.debug(f"Added {len(service_prompts)} prompts from {service_info.name}")
-                
-                return {
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "result": {
-                        "prompts": all_prompts
-                    }
-                }
+            elif method.startswith(("prompts/", "resources/")):
+                response = handle_prompts_and_resources(self.all_services(), method, params, request_id)
+                if response is not None:
+                    return response
+                return ErrorFormatter.method_not_found_error(
+                    method=method, available_methods=LEGACY_METHODS, request_id=request_id
+                )
             
             elif method == "tools/call":
                 tool_name = params.get("name")
@@ -318,7 +308,7 @@ class MultiServiceMCPServer:
                 
                 return ErrorFormatter.method_not_found_error(
                     method=method,
-                    available_methods=["initialize", "tools/list", "tools/call", "prompts/list"],
+                    available_methods=LEGACY_METHODS,
                     request_id=request_id
                 )
         
@@ -329,6 +319,71 @@ class MultiServiceMCPServer:
                 message=str(e),
                 request_id=request_id
             )
+
+RESOURCE_NOT_FOUND = -32002
+
+LEGACY_METHODS = ["initialize", "tools/list", "tools/call", "prompts/list", "prompts/get",
+                  "resources/list", "resources/read"]
+
+
+def service_capabilities(services) -> Dict[str, Any]:
+    """Capabilities of one service, or of the platform when given all services."""
+    capabilities: Dict[str, Any] = {"tools": {"listChanged": False}}
+    if any(s.supports_prompts() for s in services):
+        capabilities["prompts"] = {"listChanged": False}
+    if any(s.supports_resources() for s in services):
+        capabilities["resources"] = {"subscribe": False, "listChanged": False}
+    return capabilities
+
+
+def handle_prompts_and_resources(services, method: str, params: Dict[str, Any], request_id: Any) -> Optional[Dict[str, Any]]:
+    """Answer prompts/* and resources/* for a list of services.
+
+    Returns None if the method is not one of them.
+    """
+    def result(value: Dict[str, Any]) -> Dict[str, Any]:
+        return {"jsonrpc": "2.0", "id": request_id, "result": value}
+
+    if method == "prompts/list":
+        return result({"prompts": [p for s in services if s.supports_prompts() for p in s.get_prompts()]})
+
+    if method == "prompts/get":
+        name = params.get("name")
+        try:
+            for service in services:
+                prompt = service.get_prompt(name, params.get("arguments"))
+                if prompt is not None:
+                    return result(prompt)
+        except ValueError as e:
+            return ErrorFormatter.format_error(code=ErrorCode.INVALID_PARAMS, message=str(e), request_id=request_id)
+        return ErrorFormatter.format_error(
+            code=ErrorCode.INVALID_PARAMS,
+            message=f"Unknown prompt: {name}",
+            data={"available_prompts": [p["name"] for s in services for p in s.get_prompts()]},
+            request_id=request_id
+        )
+
+    if method == "resources/list":
+        return result({"resources": [r for s in services for r in s.get_resources()]})
+
+    if method == "resources/templates/list":
+        return result({"resourceTemplates": []})
+
+    if method == "resources/read":
+        uri = params.get("uri")
+        for service in services:
+            contents = service.read_resource(uri)
+            if contents is not None:
+                return result({"contents": contents})
+        return ErrorFormatter.format_error(
+            code=RESOURCE_NOT_FOUND,
+            message=f"Resource not found: {uri}",
+            data={"uri": uri},
+            request_id=request_id
+        )
+
+    return None
+
 
 async def handle_individual_service_mcp(service, request: Dict[str, Any], request_uuid: str = None) -> Dict[str, Any]:
     """Handle MCP requests for a specific individual service."""
@@ -347,7 +402,7 @@ async def handle_individual_service_mcp(service, request: Dict[str, Any], reques
                 "result": {
                     "protocolVersion": "2025-06-18",
                     "capabilities": {
-                        "tools": {"listChanged": False},
+                        **service_capabilities([service]),
                         "experimental": {}
                     },
                     "serverInfo": {
@@ -370,26 +425,13 @@ async def handle_individual_service_mcp(service, request: Dict[str, Any], reques
                 }
             }
         
-        elif method == "prompts/list":
-            # Check if this service supports prompts
-            if service.supports_prompts():
-                # Get prompts from this specific service
-                prompts = service.get_prompts()
-                return {
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "result": {
-                        "prompts": prompts
-                    }
-                }
-            else:
-                return {
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "result": {
-                        "prompts": []
-                    }
-                }
+        elif method.startswith(("prompts/", "resources/")):
+            response = handle_prompts_and_resources([service], method, params, request_id)
+            if response is not None:
+                return response
+            return ErrorFormatter.method_not_found_error(
+                method=method, available_methods=LEGACY_METHODS, request_id=request_id
+            )
         
         elif method == "tools/call":
             tool_name = params.get("name")
@@ -423,7 +465,7 @@ async def handle_individual_service_mcp(service, request: Dict[str, Any], reques
             
             return ErrorFormatter.method_not_found_error(
                 method=method,
-                available_methods=["initialize", "tools/list", "tools/call", "prompts/list"],
+                available_methods=LEGACY_METHODS,
                 request_id=request_id
             )
     
@@ -442,6 +484,78 @@ async def handle_individual_service_mcp(service, request: Dict[str, Any], reques
         
         return error_response
 
+MODERN_METHODS = ["server/discover", "tools/list", "tools/call", "prompts/list", "prompts/get",
+                  "resources/list", "resources/templates/list", "resources/read"]
+
+
+async def serve_mcp(request: Request, body: Dict[str, Any], handler, discover,
+                    modern_only: bool = False) -> Optional[JSONResponse]:
+    """Serve one MCP request in the era the client opened with.
+
+    Modern requests (protocol revision 2026-07-28) are validated and answered
+    statelessly. Everything else goes to the legacy initialize-based handler.
+
+    Args:
+        request: The HTTP request (for the mirrored MCP headers)
+        body: The parsed JSON-RPC request
+        handler: Coroutine that answers a JSON-RPC request in legacy shape
+        discover: Function that builds the server/discover answer for a request id
+        modern_only: Reject clients that open with initialize (the /v2 endpoints)
+    """
+    supported = [mcp_protocol.MODERN_VERSION] if modern_only else None
+    if not mcp_protocol.is_modern(body, request.headers):
+        if modern_only:
+            return JSONResponse(content=mcp_protocol.legacy_rejected(body, request.headers), status_code=400)
+        response = await handler(body)
+        if response is None:
+            return None
+        return JSONResponse(content=response)
+
+    error = mcp_protocol.validate(body, request.headers, supported)
+    if error is not None:
+        return JSONResponse(content=error, status_code=400)
+
+    method = body.get("method")
+    request_id = body.get("id")
+
+    if method == "server/discover":
+        return JSONResponse(content=discover(request_id))
+
+    if method not in MODERN_METHODS:
+        return JSONResponse(
+            content=mcp_protocol.method_not_found(request_id, method, MODERN_METHODS),
+            status_code=404
+        )
+
+    response = await handler(body)
+    content, status_code = mcp_protocol.finish(response)
+    return JSONResponse(content=content, status_code=status_code)
+
+
+def platform_discover(request_id: Any) -> Dict[str, Any]:
+    """Build the server/discover answer for the combined /mcp endpoint."""
+    return mcp_protocol.discover_result(
+        request_id=request_id,
+        name="multi-service-mcp-platform",
+        version="1.0.0",
+        capabilities=service_capabilities(mcp_server.all_services()),
+        instructions="Multi-service MCP platform. Tool names are prefixed with the service name."
+    )
+
+
+def service_discover(service, request_id: Any, modern_only: bool = False) -> Dict[str, Any]:
+    """Build the server/discover answer for one service endpoint."""
+    capabilities = service_capabilities([service])
+    return mcp_protocol.discover_result(
+        request_id=request_id,
+        name=f"{service.name}-mcp-service",
+        version=service.version,
+        capabilities=capabilities,
+        instructions=service.description,
+        supported=[mcp_protocol.MODERN_VERSION] if modern_only else None
+    )
+
+
 # Create server instance
 mcp_server = MultiServiceMCPServer()
 
@@ -454,13 +568,12 @@ async def handle_mcp_post(request: Request):
         body = await request.json()
         logger.debug(f"POST /mcp - Request: {json.dumps(body, indent=2)}")
         
-        response = await mcp_server.handle_mcp_request(body, request_uuid)
-        
-        if response is None:
-            return None 
-        
-        logger.debug(f"POST /mcp - Response: {json.dumps(response, indent=2)}")
-        return JSONResponse(content=response)
+        return await serve_mcp(
+            request,
+            body,
+            handler=lambda b: mcp_server.handle_mcp_request(b, request_uuid),
+            discover=platform_discover
+        )
     
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {e}")
@@ -559,8 +672,10 @@ async def handle_service_mcp(service_name: str, version: str, request: Request):
         body = await request.json()
         logger.debug(f"MCP {service_name}/v{version} - Request: {json.dumps(body, indent=2)}")
         
-        # Get the specific service
-        service = mcp_server.router.get_service(service_name, f"v{version}")
+        # /v2 is the same service, but only in protocol revision 2026-07-28
+        # (no initialize). /v1 answers both eras.
+        modern_only = version == "2"
+        service = mcp_server.router.get_service(service_name, "v1" if modern_only else f"v{version}")
         if not service:
             ErrorHandler.log_error(
                 error_type="SERVICE_NOT_FOUND",
@@ -580,13 +695,13 @@ async def handle_service_mcp(service_name: str, version: str, request: Request):
             return JSONResponse(content=error_response, status_code=404)
         
         # Handle MCP protocol for this specific service
-        response = await handle_individual_service_mcp(service, body, request_uuid)
-        
-        if response is None:
-            return None
-        
-        logger.debug(f"MCP {service_name}/v{version} - Response: {json.dumps(response, indent=2)}")
-        return JSONResponse(content=response)
+        return await serve_mcp(
+            request,
+            body,
+            handler=lambda b: handle_individual_service_mcp(service, b, request_uuid),
+            discover=lambda request_id: service_discover(service, request_id, modern_only),
+            modern_only=modern_only
+        )
     
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error for {service_name}/v{version}: {e}")
@@ -655,8 +770,16 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    """Serve the landing page."""
+    """Serve the landing page (static MCP server catalog)."""
     with open("static/index.html", "r") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
+
+@app.get("/examples", response_class=HTMLResponse)
+@app.get("/examples/", response_class=HTMLResponse)
+async def examples():
+    """Serve the page with our own example services."""
+    with open("static/examples/index.html", "r") as f:
         html_content = f.read()
     return HTMLResponse(content=html_content)
 

@@ -19,7 +19,6 @@ SERVICE_METHODS = [
     {"service": "timestamp", "method": "generate_random_timestamp", "params": {}},
     {"service": "fortune", "method": "get_fortune_cookie", "params": {}},
     {"service": "lucky-numbers", "method": "generate_blessed_numbers", "params": {"scenario": "lottery", "count": 6}},
-    {"service": "mvg", "method": "find_station", "params": {"query": "Hauptbahnhof", "limit": 3}},
 ]
 
 @pytest.mark.performance
